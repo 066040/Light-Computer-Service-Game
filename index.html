@@ -347,6 +347,12 @@ h3{font-family:var(--f-disp);font-size:15px;letter-spacing:.06em;text-transform:
 .lampHead{position:absolute;left:50%;top:-9px;width:54px;height:14px;transform:translateX(-50%);border-radius:20px 20px 6px 6px;background:linear-gradient(#e7ebee,#b8c0c6);box-shadow:0 8px 20px 4px #fff6d655;pointer-events:none;z-index:3}
 #title .credit{position:absolute;top:calc(12px + env(safe-area-inset-top,0px));right:max(16px,env(safe-area-inset-right,0px));font:600 12px var(--f-mono);letter-spacing:.12em;color:#8d9ca7;opacity:.8;z-index:2}
 #tapStart{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);z-index:3;background:#0b1620e6;color:var(--amber);border:1px solid var(--amber);border-radius:30px;padding:14px 26px;font:700 16px var(--f-disp);letter-spacing:.08em;animation:pulse 1.6s ease-in-out infinite}
+#rotate{display:none;position:fixed;inset:0;z-index:100;background:#070a0f;color:var(--fg);flex-direction:column;align-items:center;justify-content:center;gap:10px;text-align:center;padding:24px}
+#rotate svg{width:72px;height:72px;stroke:var(--amber);fill:none;stroke-width:2.5;stroke-linecap:round;stroke-linejoin:round;animation:rot 2.2s ease-in-out infinite}
+#rotate b{font:700 20px var(--f-disp);color:var(--amber);letter-spacing:.04em}
+#rotate span{color:var(--dim);max-width:34ch}
+@keyframes rot{0%,30%{transform:rotate(-90deg)}60%,100%{transform:rotate(0)}}
+@media (orientation:landscape) and (max-height:520px) and (pointer:coarse){#rotate{display:flex}}
 @media (prefers-reduced-motion:reduce){*{animation-duration:.01ms!important;transition-duration:.01ms!important}}
 @media (min-width:820px){.benchCols{display:grid;grid-template-columns:minmax(0,1.5fr) minmax(0,1fr);gap:16px;align-items:start}}
 </style>
@@ -363,6 +369,7 @@ h3{font-family:var(--f-disp);font-size:15px;letter-spacing:.06em;text-transform:
 <div id="coachBox"></div>
 <div id="overlay"></div>
 <div id="toasts"></div>
+<div id="rotate" aria-hidden="true"><svg viewBox="0 0 64 64"><rect x="20" y="8" width="24" height="44" rx="4"/><path d="M28 46h8"/><path d="M52 30a20 20 0 0 1-8 16M48 46h-4v-4"/></svg><b id="rotT"></b><span id="rotS"></span></div>
 <div id="title">
   <canvas id="introCv"></canvas>
   <div class="credit">made by AFGame</div>
@@ -1436,7 +1443,7 @@ function render(){
 const A={
   nav:d=>{ui.view=d.nav;render();$('#main').scrollTop=0;},
   menu:()=>openModal({k:'menu'}),
-  lang:d=>{PREF.lang=d.l;savePref();if(S)render();else showTitle();},
+  lang:d=>{PREF.lang=d.l;savePref();rotText();if(S)render();else showTitle();},
   music:()=>{PREF.music=!PREF.music;savePref();ac();musicApply();if(PREF.music)musicStart('shop');else musicStop();if(S)render();else showTitle();},
   sfxT:()=>{PREF.sfx=!PREF.sfx;savePref();if(!PREF.sfx)fanSound(false);render();},
   accept:()=>{if(canWork())acceptJob();},
@@ -1532,7 +1539,10 @@ document.addEventListener('click',e=>{
 
 /* =================== title & intro =================== */
 let stopIntro=null;
-function showTitle(){
+function rotText(){const a=$('#rotT'),b=$('#rotS');if(a)a.textContent=t('Telefonu dik çevir','Turn your phone upright');if(b)b.textContent=t('Light Computer Services telefonda dikey oynanır.','Light Computer Services is played in portrait on phones.');}
+function lockPortrait(){try{if(screen.orientation&&screen.orientation.lock&&matchMedia('(pointer:coarse)').matches)screen.orientation.lock('portrait').catch(()=>{});}catch(e){}}
+document.addEventListener('fullscreenchange',lockPortrait);
+function showTitle(){rotText();
   $('#title').style.display='flex';$('#app').style.visibility='hidden';$('#coachBox').innerHTML='';$('#overlay').innerHTML='';
   musicStop();
   const sv=loadSave();
@@ -1544,7 +1554,7 @@ function showTitle(){
     const reduce=matchMedia('(prefers-reduced-motion: reduce)').matches;
     const go=()=>{const tb=$('#tapStart');if(tb)tb.remove();if(stopIntro)stopIntro.start();if(!reduce)introSound();setTimeout(()=>$('#titleUi').classList.add('show'),reduce?0:3600);};
     if(AC&&AC.state==='running')go();
-    else{const b=document.createElement('button');b.id='tapStart';b.textContent=t('Başlamak için dokun','Tap to start');b.addEventListener('click',()=>{ac();go();});$('#title').appendChild(b);}
+    else{const b=document.createElement('button');b.id='tapStart';b.textContent=t('Başlamak için dokun','Tap to start');b.addEventListener('click',()=>{ac();lockPortrait();go();});$('#title').appendChild(b);}
   }
 }
 function startGame(isNew){
