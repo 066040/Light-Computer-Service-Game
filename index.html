@@ -1,0 +1,1601 @@
+<!doctype html>
+<html lang="tr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="description" content="Light Computer Services - a laptop repair shop game. Made by AFGame.">
+<title>Light Computer Services</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Chakra+Petch:wght@500;700&family=Barlow:wght@400;500;600;700&family=JetBrains+Mono:wght@400;700&family=Libre+Baskerville:wght@700&display=swap">
+<style>
+/* Layout: one-screen workshop app — HUD on top, scrolling work area, tab bar at the bottom. Night shop, ESD-blue bench mat, amber sign light. */
+:root{
+  --ink:#0e1317;--panel:#172028;--panel2:#1e2a33;--line:#2b3a45;--fg:#e6ecef;--dim:#8d9ca7;
+  --amber:#f3a83b;--amber-ink:#2a1a03;--mat:#1d5872;--mat2:#174a60;--pcb:#16603f;--pcb2:#1b7a4f;--copper:#c9773d;
+  --ok:#4fd18b;--warn:#f2c94c;--bad:#ff6161;--paper:#fbf8ef;--paper-ink:#23211c;
+  --f-disp:"Chakra Petch","Segoe UI",system-ui,sans-serif;--f-body:"Barlow","Segoe UI",system-ui,sans-serif;--f-mono:"JetBrains Mono",ui-monospace,Consolas,monospace;
+  color-scheme:dark;
+}
+*,*:before,*:after{box-sizing:border-box}
+html,body{height:100%;background:var(--ink);color:var(--fg)}
+body{font-family:var(--f-body);font-size:15px;line-height:1.4;overflow:hidden}
+button{font:inherit;color:inherit;cursor:pointer}
+button:focus-visible{outline:2px solid var(--amber);outline-offset:2px}
+#app{height:100%;display:flex;flex-direction:column}
+.wrap{width:100%;max-width:980px;margin:0 auto;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
+
+/* title */
+#title{position:fixed;inset:0;z-index:50;background:#070a0f;display:flex;flex-direction:column}
+#introCv{position:absolute;inset:0;width:100%;height:100%;display:block}
+#titleUi{position:relative;margin-top:auto;padding-block:24px calc(28px + env(safe-area-inset-bottom,0px));background:linear-gradient(transparent,#070a0fee 30%);opacity:0;transition:opacity .8s}
+#titleUi.show{opacity:1}
+.gname{font-family:var(--f-disp);font-weight:700;font-size:clamp(30px,7.4vw,62px);letter-spacing:.04em;line-height:1;color:var(--amber);text-shadow:0 0 18px #f3a83b66}
+.gname small{display:block;font-size:.36em;letter-spacing:.32em;color:#ffd79a;margin-top:6px}
+.gsub{color:var(--dim);margin-top:8px;max-width:52ch}
+.trow{display:flex;flex-wrap:wrap;gap:10px;margin-top:16px}
+.tin{background:var(--panel);border:1px solid var(--line);border-radius:8px;padding:12px 14px;color:var(--fg);font:inherit;min-width:0;flex:1 1 220px}
+.langs{display:flex;gap:6px;margin-top:12px}
+
+/* buttons */
+.btn{background:var(--panel2);border:1px solid var(--line);border-radius:8px;padding:10px 14px;font-weight:600;display:inline-flex;align-items:center;gap:8px;justify-content:center}
+.btn:hover{border-color:var(--dim)}
+.btn.pri{background:var(--amber);color:var(--amber-ink);border-color:var(--amber)}
+.btn.bad{background:#3a1717;border-color:#6b2a2a;color:#ffd0d0}
+.btn.sm{padding:7px 10px;font-size:13px}
+.btn.on{background:var(--fg);color:var(--ink)}
+.btn[disabled]{opacity:.4;cursor:not-allowed}
+.btns{display:flex;flex-wrap:wrap;gap:8px}
+
+/* HUD */
+.hud{border-bottom:1px solid var(--line);background:var(--panel);padding-top:env(safe-area-inset-top,0px)}
+.hud .wrap{display:flex;align-items:center;gap:10px;padding-block:8px}
+.sign{font-family:var(--f-disp);font-weight:700;color:var(--amber);letter-spacing:.05em;text-transform:uppercase;font-size:15px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:34vw;text-shadow:0 0 10px #f3a83b55}
+.stat{display:flex;gap:10px;margin-left:auto;font-variant-numeric:tabular-nums;font-size:13px;align-items:center}
+.stat>*{white-space:nowrap}
+.stat b{font-family:var(--f-mono);font-weight:700}
+.stars{color:var(--amber)}
+.ibtn{background:none;border:1px solid var(--line);border-radius:6px;padding:4px 8px;font-size:12px;color:var(--dim)}
+
+main{flex:1;overflow-y:auto;overflow-x:hidden;-webkit-overflow-scrolling:touch}
+main .wrap{padding-block:14px 150px}
+nav.tabs{border-top:1px solid var(--line);background:var(--panel);padding-bottom:env(safe-area-inset-bottom,0px)}
+nav.tabs .wrap{display:grid;grid-template-columns:repeat(4,1fr);gap:4px;padding-block:6px}
+nav.tabs button{background:none;border:0;border-radius:8px;padding:8px 2px;color:var(--dim);font-weight:600;font-size:13px;position:relative;display:flex;flex-direction:column;align-items:center;gap:3px}
+nav.tabs button svg{width:22px;height:22px;stroke:currentColor;fill:none;stroke-width:1.7}
+nav.tabs button.on{color:var(--amber);background:#f3a83b14}
+.badge{position:absolute;top:2px;right:calc(50% - 22px);background:var(--bad);color:#fff;border-radius:9px;font-size:11px;min-width:18px;padding:0 5px;line-height:18px}
+.badge.g{background:var(--ok);color:#06210f}
+
+h2{font-family:var(--f-disp);font-size:20px;letter-spacing:.03em;margin-bottom:10px;text-wrap:balance}
+h3{font-family:var(--f-disp);font-size:15px;letter-spacing:.06em;text-transform:uppercase;color:var(--dim);margin:18px 0 8px}
+.dim{color:var(--dim)}
+.card{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:12px}
+.chip{display:inline-block;font-size:12px;padding:2px 8px;border-radius:20px;background:var(--panel2);border:1px solid var(--line);color:var(--dim)}
+.chip.ok{color:var(--ok);border-color:#2e6b4a}.chip.warn{color:var(--warn);border-color:#6b5a22}.chip.bad{color:var(--bad);border-color:#6b2a2a}
+.mono{font-family:var(--f-mono)}
+
+/* counter scene */
+.scene{position:relative;height:210px;border-radius:12px;overflow:hidden;background:linear-gradient(#2a2117 0 62%,#3b2c1c 62% 66%,#5a3f24 66% 100%);border:1px solid var(--line)}
+.scene.lit{background:linear-gradient(#3a2b18 0 62%,#4b3620 62% 66%,#6a4a2a 66% 100%)}
+.scene .win{position:absolute;left:5%;top:9%;width:28%;height:40%;background:linear-gradient(#1c2a3a,#26384a);border:4px solid #3b2c1c;border-radius:4px}
+.scene .neon{position:absolute;left:5%;top:2%;font:700 12px var(--f-disp);color:#7af0ff;text-shadow:0 0 8px #7af0ff,0 0 16px #2ab7d4;letter-spacing:.12em}
+.scene .poster{position:absolute;right:6%;top:6%;width:20%;height:30%;background:#efe2c4;border-radius:2px;color:#3b2c1c;font:700 9px/1.2 var(--f-disp);padding:6px;transform:rotate(2deg);overflow:hidden}
+.scene .vitrin{position:absolute;left:5%;top:9%;width:28%;height:40%;background-color:#1c2a3a;grid-template-columns:repeat(4,1fr)!important;border:3px solid #6b4a2a;border-radius:3px;background:#ffffff0c;display:grid;grid-template-columns:repeat(3,1fr);gap:4px;padding:5px;align-content:end}
+.scene .vitrin i{height:14px;border-radius:2px}
+.cust{position:absolute;left:50%;bottom:34%;transform:translateX(-50%);width:90px;height:120px;animation:walkin .6s ease-out}
+.cust .head{position:absolute;left:28px;top:0;width:34px;height:38px;border-radius:50% 50% 46% 46%;background:#d9a77c}
+.cust .hair{position:absolute;left:25px;top:-4px;width:40px;height:20px;border-radius:20px 20px 6px 6px}
+.cust .body{position:absolute;left:10px;top:40px;width:70px;height:80px;border-radius:30px 30px 6px 6px}
+.scene .counterTop{position:absolute;left:0;right:0;bottom:22%;height:14%;background:#6b4a2a;border-top:3px solid #8a6238}
+.scene .lapOn{position:absolute;left:62%;bottom:36%;width:64px;height:9px;border-radius:2px 2px 0 0}
+.register{position:absolute;right:5%;bottom:36%;width:74px;height:46px}
+.register .rb{position:absolute;left:0;right:0;bottom:0;height:30px;background:linear-gradient(#3c454c,#262c31);border-radius:4px 4px 2px 2px}
+.register .rd{position:absolute;left:8px;top:0;width:40px;height:18px;background:#0b1a12;border:2px solid #3c454c;border-radius:3px;color:#5dff9a;font:700 9px/14px var(--f-mono);text-align:center;overflow:hidden}
+.register .dr{position:absolute;left:4px;right:4px;bottom:-6px;height:10px;background:#555f66;border-radius:0 0 3px 3px;transition:transform .35s cubic-bezier(.3,1.6,.6,1)}
+.register.open .dr{transform:translateY(12px)}
+.bubble{position:relative;background:var(--fg);color:#16202a;border-radius:12px;padding:12px 14px;margin-top:12px;font-size:16px}
+.bubble:before{content:"";position:absolute;left:30px;top:-10px;border:10px solid transparent;border-top:0;border-bottom-color:var(--fg)}
+@keyframes walkin{from{transform:translateX(30%);opacity:0}to{transform:translateX(-50%);opacity:1}}
+
+.grid2{display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:10px}
+.job .top{display:flex;justify-content:space-between;gap:8px;align-items:baseline}
+.job .say{font-size:14px;color:var(--dim);margin:6px 0 10px}
+
+/* bench */
+.mat{background:repeating-linear-gradient(0deg,transparent 0 39px,#ffffff0d 39px 40px),repeating-linear-gradient(90deg,transparent 0 39px,#ffffff0d 39px 40px),linear-gradient(var(--mat),var(--mat2));border-radius:14px;padding:16px;border:1px solid #2b6b88;position:relative}
+.jobbar{display:flex;gap:10px;align-items:flex-start;justify-content:space-between;flex-wrap:wrap;margin-bottom:10px}
+.jobbar .who{min-width:0;flex:1 1 240px}
+.seg{display:inline-flex;border:1px solid var(--line);border-radius:8px;overflow:hidden}
+.seg button{background:var(--panel);border:0;padding:8px 14px;font-weight:600;color:var(--dim)}
+.seg button.on{background:var(--fg);color:var(--ink)}
+.ctrl{display:flex;flex-wrap:wrap;gap:8px;margin-top:12px}
+.notes{margin-top:12px;font-size:13px;color:#cfe4ee;display:grid;gap:4px}
+.notes div{background:#0b2a38aa;border-radius:6px;padding:6px 8px}
+
+/* laptop front */
+.lapF{position:relative;margin:0 auto}
+.lid{background:var(--lid);border-radius:12px 12px 2px 2px;padding:3.2% 3.2% 4%;border:1px solid #ffffff1a;position:relative}
+.lid .stripe{position:absolute;left:30%;right:30%;bottom:1.2%;height:3px;border-radius:2px}
+.scr{position:relative;aspect-ratio:16/10;background:#05070a;border-radius:3px;overflow:hidden;font-family:var(--f-mono);font-size:clamp(9px,2.3vw,13px);color:#d8dde0}
+.scr .refl{position:absolute;inset:0;background:linear-gradient(120deg,#ffffff10,transparent 40%);pointer-events:none}
+.deck{position:relative;background:linear-gradient(var(--deck1),var(--deck2));height:clamp(70px,20vw,110px);border-radius:0 0 14px 14px;margin:0 -3%;clip-path:polygon(2% 0,98% 0,100% 100%,0 100%)}
+.kbd{position:absolute;left:12%;right:12%;top:10%;height:44%;border-radius:3px;background:repeating-linear-gradient(90deg,transparent 0 6%,var(--deck2) 6% 6.9%),repeating-linear-gradient(0deg,var(--deck2) 0 3.5%,transparent 3.5% 20%),var(--key);box-shadow:inset 0 0 0 2px var(--deck2),0 1px 0 #ffffff22}
+.kbd.glow{box-shadow:0 0 14px var(--glow)}
+.tpad{position:absolute;left:38%;width:24%;top:60%;height:30%;background:#00000022;border-radius:4px;border:1px solid #00000033;transition:transform .3s}
+.tpad.raised{transform:translateY(-4px) rotate(-2deg);box-shadow:0 6px 0 #00000066}
+.pwr{position:absolute;right:5%;top:10%;width:22px;height:22px;border-radius:50%;background:#3a4148;border:2px solid #59626a}
+.pwr:after{content:"";position:absolute;left:50%;top:22%;width:2px;height:40%;background:#9aa3aa;transform:translateX(-50%)}
+.leds{position:absolute;left:4%;bottom:12%;display:flex;gap:6px}
+.led{width:8px;height:8px;border-radius:50%;background:#4b5359;display:block}
+.led.on{background:#e8f6ff;box-shadow:0 0 8px #bfe6ff}
+.led.amber{background:var(--amber);box-shadow:0 0 8px var(--amber)}
+.led.blink{background:var(--amber);animation:blink .5s steps(2) infinite}
+.led.flick{background:var(--amber);animation:blink .23s steps(2) infinite}
+@keyframes blink{50%{opacity:.1}}
+.cable{position:absolute;left:3%;bottom:-14px;width:34%;height:6px;background:#1a1d20;border-radius:3px}
+.cable:after{content:attr(data-l);position:absolute;left:0;top:9px;font-size:11px;color:var(--fg);white-space:nowrap}
+.cable.test{background:#7a1f1f}
+
+/* screens */
+.s-text{position:absolute;inset:0;padding:6%;white-space:pre-wrap;line-height:1.5}
+.s-post{position:absolute;inset:0;display:grid;place-items:center;text-align:center}
+.s-post .f2{position:absolute;left:4%;bottom:5%;font-size:.75em;color:#888}
+.bl{font-weight:700;letter-spacing:.14em;font-size:clamp(16px,5vw,30px)}
+.b-lenvo .bl{font-family:var(--f-body);color:#fff;letter-spacing:.06em;font-size:clamp(18px,5.4vw,32px);padding:2px 10px;border-bottom:4px solid #e2231a;animation:fadein 1s}
+.b-aser .bl{font-family:var(--f-disp);color:#83b81a;text-transform:lowercase;letter-spacing:.02em;font-size:clamp(20px,6vw,36px);animation:slidein .9s cubic-bezier(.2,.8,.2,1)}
+.b-hb .bl{width:2.4em;height:2.4em;border-radius:50%;border:3px solid #2aa0ff;display:grid;place-items:center;color:#2aa0ff;font-style:italic;font-family:var(--f-body);letter-spacing:0;animation:pulse2 1.2s ease-in-out infinite}
+.b-dalle .bl{width:3.4em;height:3.4em;border-radius:50%;border:3px solid #3f8fe0;display:grid;place-items:center;color:#3f8fe0;font-size:clamp(11px,3vw,18px);letter-spacing:.05em}
+.b-dalle .bar{width:40%;height:4px;background:#222;margin:10px auto 0;border-radius:2px;overflow:hidden}
+.b-dalle .bar i{display:block;height:100%;background:#3f8fe0;animation:fill 1.2s linear forwards}
+.b-canavar .bl{color:#ff2b2b;font-family:var(--f-disp);text-shadow:2px 0 #00e5ff,-2px 0 #ff2b2b;animation:glitch .35s steps(2) infinite}
+.b-canavar{background:repeating-linear-gradient(0deg,#ff2b2b0d 0 2px,transparent 2px 4px)}
+.b-tosiba .bl{color:#e2231a;font-family:"Libre Baskerville",Georgia,serif;letter-spacing:.06em}
+.b-tosiba .sub{color:#999;font-size:.7em;margin-top:6px;animation:blink 1s steps(2) infinite}
+.dots{display:flex;gap:6px;justify-content:center;margin-top:12px}.dots i{width:6px;height:6px;border-radius:50%;background:#ccc;animation:dot 1s infinite}.dots i:nth-child(2){animation-delay:.15s}.dots i:nth-child(3){animation-delay:.3s}
+@keyframes dot{50%{opacity:.15}}
+@keyframes fadein{from{opacity:0}}
+@keyframes slidein{from{transform:translateX(-40%);opacity:0}}
+@keyframes pulse2{50%{transform:scale(1.08);box-shadow:0 0 16px #2aa0ff88}}
+@keyframes fill{from{width:0}to{width:100%}}
+@keyframes glitch{50%{transform:translateX(2px) skewX(-6deg)}}
+.s-bios{position:absolute;inset:0;background:#0f2a6b;color:#e5ecff;padding:4% 5%;line-height:1.5}
+.s-bios h4{background:#b9c4e0;color:#0f2a6b;margin:-4% -5% 3%;padding:1.5% 5%;font-size:1em}
+.s-bios table{width:100%;border-collapse:collapse}.s-bios td{padding:0 4px 0 0;vertical-align:top}
+.s-bios .w{color:#ffd76b}
+.s-bsod{position:absolute;inset:0;background:#1b6ac9;color:#fff;padding:7%;font-family:var(--f-body)}
+.s-bsod b{font-size:2.6em;display:block;line-height:1}
+.s-win{position:absolute;inset:0;font-family:var(--f-body)}
+.s-win .icons{display:grid;grid-template-columns:repeat(4,1fr);gap:4%;padding:4% 5%}
+.s-win .icons button{background:#ffffff14;border:1px solid #ffffff22;border-radius:6px;padding:6% 2%;color:#fff;font-size:.95em;line-height:1.15}
+.s-win .bar{position:absolute;left:0;right:0;bottom:0;height:9%;background:#0c1a26e6;display:flex;align-items:center;justify-content:space-between;padding:0 3%;font-size:.85em}
+.s-win .wnd{position:absolute;left:3%;right:3%;top:4%;bottom:12%;background:#f1f4f6;color:#16202a;border-radius:6px;overflow:hidden;display:flex;flex-direction:column}
+.wnd .wt{background:#d9e0e5;display:flex;justify-content:space-between;align-items:center;padding:1% 2.5%;font-weight:700}
+.wnd .wt button{background:none;border:0;font-weight:700;padding:0 6px}
+.wnd .wb{padding:2.5% 3.5%;overflow:auto;flex:1;font-size:.95em;line-height:1.45}
+.meter{height:10px;background:#cdd6dc;border-radius:5px;overflow:hidden;margin:4px 0}
+.meter i{display:block;height:100%;background:#2f8f5b}
+.kgrid{display:grid;grid-template-columns:repeat(12,1fr);gap:2px}.kgrid span{background:#cfd8de;border-radius:2px;font-size:.7em;text-align:center}
+.kgrid span.x{background:#ff8b8b}
+.s-menu{position:absolute;inset:0;background:#000;padding:6%;color:#ccc}
+.s-menu button{display:block;width:100%;text-align:left;background:none;border:0;color:#ddd;padding:1.2% 2%;font-family:var(--f-mono);font-size:1em}
+.s-menu button:hover,.s-menu button:focus{background:#d8dde0;color:#000}
+
+/* underside */
+.under{position:relative;margin:0 auto}
+.cover{position:absolute;inset:0;background:linear-gradient(160deg,var(--c1),var(--c2));border-radius:var(--rad,16px);border:1px solid #ffffff22;box-shadow:inset 0 0 0 6px #00000022}
+.vent{position:absolute;background:repeating-linear-gradient(90deg,#0e1114 0 4px,transparent 4px 9px);border-radius:6px;opacity:.85}
+.vent.hc{background:radial-gradient(circle,#0e1114 0 45%,transparent 50%) 0 0/9px 9px}
+.vent.red{background:repeating-linear-gradient(90deg,#3a0b0b 0 4px,transparent 4px 9px);box-shadow:0 0 0 1px #d22c2c55}
+.sticker{position:absolute;left:40%;top:56%;width:22%;height:18%;background:#e9e4d6;color:#333;border-radius:3px;font:600 clamp(6px,1.5vw,9px)/1.25 var(--f-mono);padding:1%;overflow:hidden}
+.foot{position:absolute;width:13%;height:6%;background:#15191c;border-radius:20px;transform:translate(-50%,-50%);border:0}
+.foot.strip{width:4%;height:30%}
+.scrw{position:absolute;width:clamp(16px,3.6%,24px);aspect-ratio:1;border-radius:50%;transform:translate(-50%,-50%);border:0;padding:0;background:radial-gradient(circle at 40% 35%,#cfd6db,#7d878f 60%,#4c555c)}
+.scrw:before,.scrw:after{content:"";position:absolute;left:50%;top:50%;width:56%;height:2px;background:#30373d;transform:translate(-50%,-50%)}
+.scrw:after{transform:translate(-50%,-50%) rotate(90deg)}
+.scrw.torx:after{transform:translate(-50%,-50%) rotate(60deg)}
+.scrw.out{background:#0c0f12;box-shadow:inset 0 0 0 2px #4a545c}
+.scrw.out:before,.scrw.out:after{display:none}
+.scrw.spin{animation:unscrew .35s ease-in}
+@keyframes unscrew{to{transform:translate(-50%,-50%) rotate(-540deg) scale(1.25)}}
+
+/* board */
+.board{position:absolute;inset:0;border-radius:var(--rad,16px);overflow:hidden;background:repeating-linear-gradient(90deg,transparent 0 22px,#ffffff08 22px 23px),repeating-linear-gradient(0deg,transparent 0 30px,#ffffff06 30px 31px),#262d33;border:1px solid #4a545c}
+.mb{position:absolute;left:3%;top:3%;width:94%;height:56%;background:linear-gradient(135deg,var(--pcbA,var(--pcb)),var(--pcbB,var(--pcb2)));border-radius:6px;box-shadow:inset 0 0 0 1px #00000055}
+.cp{position:absolute;border:0;padding:0;background:none;border-radius:6px}
+.cp:hover{outline:2px dashed #ffffffaa;outline-offset:2px}
+.cp .lbl{position:absolute;left:50%;bottom:-2px;transform:translate(-50%,100%);font:600 clamp(8px,1.8vw,11px)/1 var(--f-body);background:#0a0f13cc;color:#fff;padding:2px 5px;border-radius:4px;white-space:nowrap;pointer-events:none;z-index:3}
+.nolbl .cp .lbl{display:none}
+.fanC{position:absolute;inset:4%;border-radius:50%;background:#1a1f23;border:3px solid #39424a;display:grid;place-items:center}
+.blades{width:84%;height:84%;border-radius:50%;background:repeating-conic-gradient(#4d575f 0 18deg,#20262b 18deg 36deg)}
+.blades.run{animation:spin .25s linear infinite}
+.blades.slow{animation:spin 1.2s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+.dust{position:absolute;inset:0;border-radius:50%;background:radial-gradient(circle at 30% 30%,#a59f92 0 18%,transparent 19%),radial-gradient(circle at 70% 60%,#b6ae9f 0 22%,transparent 23%),radial-gradient(circle,#8c877c 0 70%,transparent 72%);pointer-events:none}
+.hsink{position:absolute;inset:0}
+.hsink .pipe{position:absolute;left:-30%;top:40%;width:100%;height:16%;background:linear-gradient(var(--copper),#8f4f22);border-radius:8px}
+.hsink .plate{position:absolute;left:50%;top:10%;width:44%;height:80%;background:linear-gradient(135deg,#d7dde1,#9aa4ab);border-radius:4px;box-shadow:0 0 0 2px #6b747b}
+.hsink .plate i{position:absolute;width:12%;aspect-ratio:1;border-radius:50%;background:#59626a}
+.cpu{position:absolute;left:50%;top:14%;width:40%;height:72%;background:#1e2a24;border-radius:3px;box-shadow:0 0 0 2px #2e3a33}
+.cpu .die{position:absolute;inset:22% 22%;border-radius:2px;background:linear-gradient(135deg,#c9d0d6,#88939b)}
+.cpu .paste{position:absolute;inset:16%;border-radius:4px}
+.paste.dry{background:repeating-linear-gradient(35deg,#9b9a92 0 5px,#6f6d66 5px 6px),#9b9a92}
+.paste.good{background:radial-gradient(circle,#c7c9c9 0 45%,#a9acad 60%,transparent 62%)}
+.ram{position:absolute;inset:0;background:linear-gradient(#1f7a46,#176038);border-radius:2px;box-shadow:inset 0 -3px 0 #d4a83a;transition:transform .3s}
+.ram:before{content:"";position:absolute;left:6%;right:6%;top:18%;height:46%;background:repeating-linear-gradient(90deg,#14191c 0 14%,transparent 14% 20%)}
+.ram.loose{transform:rotate(-7deg) translateY(-12%)}
+.slot{position:absolute;inset:0;border:2px dashed #ffffff55;border-radius:3px}
+.ssd{position:absolute;inset:0;background:linear-gradient(#1d3b2c,#15291f);border-radius:2px;box-shadow:inset 0 0 0 1px #2c5a43}
+.ssd:before{content:"";position:absolute;left:12%;top:20%;width:28%;height:60%;background:#14191c}
+.ssd:after{content:"";position:absolute;left:46%;top:20%;width:40%;height:60%;background:#14191c}
+.cmos{position:absolute;inset:6%;border-radius:50%;background:radial-gradient(circle at 35% 35%,#eef2f4,#9aa4ab 70%);box-shadow:0 0 0 2px #59626a}
+.wifi{position:absolute;inset:0;background:#123a2a;border-radius:2px;box-shadow:inset 0 0 0 1px #2c5a43}
+.ant{position:absolute;width:2px;height:120%;background:#111;top:-110%}
+.ant.w{background:#ddd}
+.ant.loose{transform:rotate(38deg);transform-origin:bottom}
+.dcj{position:absolute;inset:0;background:#15191c;border-radius:2px;box-shadow:inset 0 0 0 2px #39424a}
+.kbc{position:absolute;inset:0;background:#d8b46a;border-radius:2px}
+.corr{position:absolute;inset:0;border-radius:40%;background:radial-gradient(circle at 40% 50%,#c9e3d6 0 14%,#5aa38a 15% 30%,transparent 55%),radial-gradient(circle at 70% 40%,#e3efe8 0 10%,#4c9a7e 12% 26%,transparent 45%)}
+.batt{position:absolute;inset:0;background:linear-gradient(#22282d,#14181b);border-radius:6px;box-shadow:inset 0 0 0 2px #3a434b;display:grid;grid-template-columns:repeat(3,1fr);gap:4%;padding:5%}
+.batt i{background:linear-gradient(90deg,#2d343a,#1b2024);border-radius:4px}
+.batt.sw{transform:scale(1.03,1.08);box-shadow:inset 0 0 0 2px var(--warn),0 0 18px #f2c94c55}
+.batt.sw:after{content:attr(data-w);position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);font:700 13px var(--f-disp);color:var(--warn);letter-spacing:.1em}
+.batc{position:absolute;inset:0;background:#e8e8e8;border-radius:2px;transition:transform .3s}
+.batc.off{transform:translateY(-70%);background:#bbb}
+.empty{position:absolute;inset:0;border:2px dashed #ffffff44;border-radius:6px}
+.bay{position:absolute;inset:0;border-radius:4px;background:linear-gradient(#8f989f,#6a737a);box-shadow:inset 0 0 0 2px #4a545c}
+.bay.ssd25{background:linear-gradient(#2c3238,#1a1f23)}
+.bay:after{content:attr(data-t);position:absolute;inset:0;display:grid;place-items:center;font:700 clamp(8px,1.8vw,11px) var(--f-mono);color:#eee}
+.dead-x{position:absolute;inset:0;background:repeating-linear-gradient(45deg,transparent 0 6px,#ff616122 6px 9px);pointer-events:none}
+
+/* PC */
+.os{background:#0b1620;border:1px solid var(--line);border-radius:10px;overflow:hidden}
+.os .ttl{background:linear-gradient(90deg,#1e3a52,#16293a);padding:8px 12px;font-family:var(--f-disp);letter-spacing:.06em;display:flex;justify-content:space-between}
+.ostabs{display:flex;flex-wrap:wrap;gap:4px;padding:8px;border-bottom:1px solid var(--line)}
+.ostabs button{background:none;border:1px solid transparent;border-radius:6px;padding:6px 10px;color:var(--dim);font-weight:600}
+.ostabs button.on{border-color:var(--line);background:var(--panel2);color:var(--fg)}
+.osb{padding:12px}
+.row{display:flex;gap:10px;align-items:center;justify-content:space-between;padding:9px 0;border-bottom:1px solid #1d2a35;flex-wrap:wrap}
+.row .nm{min-width:0;flex:1 1 200px}
+.row small{color:var(--dim);display:block}
+.amt.p{color:var(--ok)}.amt.n{color:var(--bad)}
+.chips{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:10px}
+.chips button{background:var(--panel);border:1px solid var(--line);border-radius:20px;padding:5px 12px;font-size:13px;color:var(--dim)}
+.chips button.on{background:var(--fg);color:var(--ink)}
+
+/* overlays */
+.veil{position:fixed;inset:0;background:#000a;z-index:30;display:flex;align-items:flex-end;justify-content:center}
+.veil.mid{align-items:center}
+.sheet{background:var(--panel);width:100%;max-width:620px;border-radius:16px 16px 0 0;border:1px solid var(--line);padding:16px max(16px,env(safe-area-inset-left,0px)) calc(16px + env(safe-area-inset-bottom,0px)) max(16px,env(safe-area-inset-right,0px));max-height:82vh;overflow-y:auto;animation:up .2s ease-out}
+.modal{background:var(--panel);width:calc(100% - 32px);max-width:520px;border-radius:14px;border:1px solid var(--line);padding:18px;max-height:88vh;overflow-y:auto;animation:pop .18s ease-out}
+@keyframes up{from{transform:translateY(30px);opacity:0}}
+@keyframes pop{from{transform:scale(.96);opacity:0}}
+.act{display:flex;justify-content:space-between;align-items:center;gap:10px;width:100%;text-align:left;background:var(--panel2);border:1px solid var(--line);border-radius:10px;padding:11px 12px;margin-top:8px}
+.act small{color:var(--dim);display:block;font-weight:400}
+.act .t{font-family:var(--f-mono);font-size:12px;color:var(--dim);white-space:nowrap}
+.act[disabled]{opacity:.45}
+.inv{width:100%;border-collapse:collapse;font-variant-numeric:tabular-nums;margin:10px 0}
+.inv td{padding:7px 0;border-bottom:1px solid var(--line)}.inv td:last-child{text-align:right;font-family:var(--f-mono)}
+.inv tr.tot td{border:0;font-weight:700;font-size:18px;color:var(--amber)}
+.step{display:flex;align-items:center;gap:8px}
+.step b{font-family:var(--f-mono);min-width:70px;text-align:center}
+
+/* printed invoice */
+.printer{background:#2a3137;border-radius:10px 10px 4px 4px;height:18px;margin:4px 6px 0;box-shadow:inset 0 -4px 0 #11161a}
+.paperWrap{overflow:hidden;margin:0 18px}
+.paper{background:var(--paper);color:var(--paper-ink);font-family:var(--f-mono);font-size:12px;line-height:1.5;padding:14px 14px 18px;animation:print 1.6s steps(14) both;clip-path:polygon(0 0,100% 0,100% calc(100% - 6px),95% 100%,90% calc(100% - 6px),85% 100%,80% calc(100% - 6px),75% 100%,70% calc(100% - 6px),65% 100%,60% calc(100% - 6px),55% 100%,50% calc(100% - 6px),45% 100%,40% calc(100% - 6px),35% 100%,30% calc(100% - 6px),25% 100%,20% calc(100% - 6px),15% 100%,10% calc(100% - 6px),5% 100%,0 calc(100% - 6px))}
+@keyframes print{from{transform:translateY(-100%)}to{transform:none}}
+.paper h5{font-family:var(--f-disp);font-size:15px;text-align:center;letter-spacing:.06em}
+.paper .c{text-align:center}
+.paper hr{border:0;border-top:1px dashed #9a9585;margin:6px 0}
+.paper .l{display:flex;justify-content:space-between;gap:8px}
+.paper .l span:first-child{min-width:0}
+.paper .tt{font-weight:700;font-size:14px}
+.paper .stamp{display:inline-block;border:2px solid #b2302a;color:#b2302a;padding:0 6px;transform:rotate(-8deg);font-weight:700;opacity:0;transition:opacity .2s}
+.paper .stamp.on{opacity:1}
+.regBig{position:relative;height:84px;margin-top:12px}
+.regBig .register{left:50%;right:auto;transform:translateX(-50%) scale(1.5);transform-origin:bottom center;bottom:14px}
+
+#toasts{position:fixed;left:50%;top:calc(64px + env(safe-area-inset-top,0px));transform:translateX(-50%);z-index:60;display:grid;gap:6px;width:min(420px,calc(100% - 32px));pointer-events:none}
+.toast{background:#0b1620f2;border:1px solid var(--line);border-left:3px solid var(--amber);border-radius:8px;padding:9px 12px;font-size:14px;animation:pop .2s;display:flex;gap:8px;align-items:center}
+.toast.pkg{border-left-color:var(--ok)}.toast.ach{border-left-color:#b48cff}
+.toast svg{flex:0 0 18px;width:18px;height:18px;stroke:currentColor;fill:none;stroke-width:1.8}
+#coach{position:fixed;left:50%;transform:translateX(-50%);bottom:calc(72px + env(safe-area-inset-bottom,0px));z-index:20;width:min(600px,calc(100% - 24px));background:#0b1620f7;border:1px solid var(--amber);border-radius:12px;padding:10px 12px;display:flex;gap:10px;align-items:flex-start;box-shadow:0 10px 30px #0008}
+#coach .av{flex:0 0 38px;height:38px;border-radius:50%;background:var(--amber);color:var(--amber-ink);display:grid;place-items:center;font:700 14px var(--f-disp)}
+#coach .tx{flex:1;min-width:0;font-size:14px}
+#coach .tx b{color:var(--amber)}
+.pulse{animation:pulse 1.2s ease-in-out infinite;position:relative;z-index:4}
+@keyframes pulse{0%,100%{box-shadow:0 0 0 0 #f3a83bcc}50%{box-shadow:0 0 0 7px #f3a83b00}}
+.cp.pulse,.scrw.pulse,.foot.pulse{outline:3px solid var(--amber);outline-offset:2px}
+#shutter{position:fixed;inset:0;z-index:70;background:repeating-linear-gradient(0deg,#5d666d 0 10px,#454d53 10px 12px,#6c757c 12px 22px);display:grid;place-items:center;transition:transform 1.4s cubic-bezier(.6,0,.3,1)}
+#shutter div{font:700 26px var(--f-disp);color:var(--amber);background:#0b1620;padding:10px 20px;border-radius:8px;letter-spacing:.08em}
+#shutter.up{transform:translateY(-102%)}
+.vol{width:100%}
+/* realism & upgrades */
+.lapF{filter:drop-shadow(0 16px 14px #0008)}
+.lid{background:var(--lid);background:linear-gradient(165deg,color-mix(in srgb,var(--lid) 82%,#fff),var(--lid) 35%,color-mix(in srgb,var(--lid) 78%,#000))}
+.lid:before{content:"";position:absolute;left:50%;top:1.3%;width:5px;height:5px;border-radius:50%;background:#0b0e11;box-shadow:0 0 0 1px #ffffff22;transform:translateX(-50%)}
+.hinge{height:7px;margin:0 7%;background:linear-gradient(#0d0f12,#2b3036 60%,#15181b);border-radius:0 0 5px 5px}
+.deck{box-shadow:inset 0 2px 0 #ffffff30}
+.under{filter:drop-shadow(0 14px 14px #0008)}
+.cover{background:radial-gradient(#ffffff0a 1px,transparent 1.2px) 0 0/5px 5px,linear-gradient(160deg,var(--c1),var(--c2))}
+.cover:after{content:"";position:absolute;inset:6%;border:1px solid #ffffff12;border-radius:calc(var(--rad,16px) * .6);pointer-events:none}
+.scrw{box-shadow:0 1px 2px #000b}
+.foot{box-shadow:inset 0 2px 3px #ffffff1c,0 2px 4px #000b}
+.deco i{position:absolute;pointer-events:none;display:block}
+.deco .ic{background:linear-gradient(135deg,#2a2d30,#141618);border-radius:2px;box-shadow:0 0 0 1px #00000088,inset 0 0 0 1px #ffffff10}
+.deco .ind{width:3.6%;height:5%;background:linear-gradient(#6b7378,#3d4448);border-radius:1px}
+.deco .cap{width:1.4%;height:2%;background:#c8a46a;border-radius:1px}
+.deco .hole{width:2.4%;aspect-ratio:1;border-radius:50%;background:#1a1d20;box-shadow:0 0 0 2px #c9a24a}
+.deco .tr{height:1px;background:#e3c27a55}
+.fanC{box-shadow:inset 0 0 0 3px #00000055,0 2px 4px #0008}
+.b-asis .bl{font-family:var(--f-body);font-weight:500;letter-spacing:.42em;color:#e9eef5;animation:fadein 1.2s}
+.b-asis .sub2{width:40%;height:2px;margin:10px auto 0;background:linear-gradient(90deg,transparent,#8fb3ff,transparent);animation:fill 1.4s}
+.b-msg .bl{color:#e0242a;font-family:var(--f-disp);font-style:italic;letter-spacing:.2em;text-shadow:0 0 12px #e0242a;animation:slidein .6s}
+.b-samsunk .bl{color:#1d5bd6;font-family:var(--f-body);letter-spacing:.1em;background:#fff;padding:4px 14px;border-radius:30px;animation:fadein 1s}
+.b-huvavi .bl{color:#e8e8e8;font-family:var(--f-body);letter-spacing:.24em}
+.b-huvavi .petal{width:24px;height:24px;margin:0 auto 10px;border-radius:50% 0;background:#d4001a;transform:rotate(45deg);animation:pulse2 1.2s infinite}
+.scene .tv{position:absolute;left:38%;top:5%;width:20%;height:24%;background:#0b0e12;border:3px solid #222;border-radius:3px;overflow:hidden}
+.scene .tv i{position:absolute;inset:0;background:linear-gradient(120deg,#1e5d8c,#3fa0c8 50%,#1e5d8c);animation:tvs 4s linear infinite alternate;opacity:.85}
+@keyframes tvs{to{filter:hue-rotate(80deg)}}
+.scene .cab{position:absolute;left:62%;top:16%;width:12%;height:46%;background:repeating-linear-gradient(0deg,#5b6770 0 22%,#3a434a 22% 25%);border-radius:2px;box-shadow:inset 0 0 0 2px #2a3036}
+.scene .coffee{position:absolute;left:8%;bottom:36%;width:30px;height:34px;background:linear-gradient(#2b2b2b,#111);border-radius:4px 4px 2px 2px}
+.scene .coffee i{position:absolute;left:8px;bottom:2px;width:12px;height:9px;background:#f4f1ea;border-radius:0 0 4px 4px}
+.scene .coffee:after{content:"";position:absolute;left:12px;top:-14px;width:4px;height:12px;background:linear-gradient(transparent,#ffffff55);filter:blur(2px);animation:steam 2s infinite}
+@keyframes steam{50%{transform:translateY(-4px);opacity:.4}}
+.mat.pro{background:repeating-linear-gradient(0deg,transparent 0 19px,#ffffff08 19px 20px),repeating-linear-gradient(90deg,transparent 0 19px,#ffffff08 19px 20px),linear-gradient(#1b3a2e,#132a21);border-color:#2f5e4b}
+.mat.lamp:after{content:"";position:absolute;inset:0;border-radius:14px;background:radial-gradient(ellipse at 50% 0%,#fff6d63a,transparent 60%);pointer-events:none}
+.lampHead{position:absolute;left:50%;top:-9px;width:54px;height:14px;transform:translateX(-50%);border-radius:20px 20px 6px 6px;background:linear-gradient(#e7ebee,#b8c0c6);box-shadow:0 8px 20px 4px #fff6d655;pointer-events:none;z-index:3}
+#title .credit{position:absolute;top:calc(12px + env(safe-area-inset-top,0px));right:max(16px,env(safe-area-inset-right,0px));font:600 12px var(--f-mono);letter-spacing:.12em;color:#8d9ca7;opacity:.8;z-index:2}
+#tapStart{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);z-index:3;background:#0b1620e6;color:var(--amber);border:1px solid var(--amber);border-radius:30px;padding:14px 26px;font:700 16px var(--f-disp);letter-spacing:.08em;animation:pulse 1.6s ease-in-out infinite}
+@media (prefers-reduced-motion:reduce){*{animation-duration:.01ms!important;transition-duration:.01ms!important}}
+@media (min-width:820px){.benchCols{display:grid;grid-template-columns:minmax(0,1.5fr) minmax(0,1fr);gap:16px;align-items:start}}
+</style>
+<style>[hidden]{display:none!important}body{margin:0}</style>
+</head>
+<body>
+
+
+<div id="app">
+  <header class="hud" id="hud"></header>
+  <main id="main"></main>
+  <nav class="tabs" id="nav"></nav>
+</div>
+<div id="coachBox"></div>
+<div id="overlay"></div>
+<div id="toasts"></div>
+<div id="title">
+  <canvas id="introCv"></canvas>
+  <div class="credit">made by AFGame</div>
+  <div id="titleUi"><div class="wrap">
+    <div class="gname">LIGHT<small>COMPUTER SERVICES</small></div>
+    <p class="gsub" id="tsub"></p>
+    <div class="trow" id="titleBtns"></div>
+    <div class="langs" id="titleLang"></div>
+  </div></div>
+</div>
+
+<script>
+(function(){
+'use strict';
+/* =================== prefs & i18n =================== */
+const PREF={lang:'tr',music:true,sfx:true,vol:.7};
+try{Object.assign(PREF,JSON.parse(localStorage.getItem('lcs_prefs')||'{}'));}catch(e){}
+function savePref(){try{localStorage.setItem('lcs_prefs',JSON.stringify(PREF));}catch(e){}}
+const t=(a,b)=>PREF.lang==='en'?b:a;
+const B=(tr,en)=>({tr,en});
+const X=o=>o==null?'':typeof o==='string'?o:(o[PREF.lang]||o.tr);
+
+/* =================== helpers =================== */
+const $=s=>document.querySelector(s);
+const R=(a,b)=>a+Math.random()*(b-a);
+const RI=(a,b)=>Math.floor(R(a,b+1));
+const pick=a=>a[Math.floor(Math.random()*a.length)];
+const clamp=(v,a,b)=>Math.max(a,Math.min(b,v));
+const usd=n=>(n<0?'−':'')+'$'+Math.abs(+n).toLocaleString('en-US',{maximumFractionDigits:2});
+const hhmm=t=>String(Math.floor(t/60)).padStart(2,'0')+':'+String(Math.round(t%60)).padStart(2,'0');
+const esc=s=>String(s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+const KEY='lcs_save_v2';
+const CLOSE=19*60;
+const RENT=9;
+
+/* =================== models (look, screws, boot) =================== */
+const MODELS={
+  ideabook:{name:'Lenvo IdeaBook 15',brand:'LENVO',boot:'lenvo',slots:2,ram:'d4',initRam:['ram_d4_8',null],m2:'nvme',bay:false,chg:'chg_b65',dc:'cable',hidden:0,mult:1,
+    look:{c1:'#454b52',c2:'#30353a',lid:'#4a5058',d1:'#5b6168',d2:'#474c52',key:'#22262a',w:94,ar:'16/10.2',rad:'14px',pcb:['#16603f','#1b7a4f'],stripe:null,lap:'#4a5058',
+      vents:[[8,10,30,22,''],[55,18,22,10,'']],feet:[[14,85],[14,15],[86,15],[86,85]],
+      screws:[[5,7],[28,5],[50,5],[72,5],[95,7],[95,50],[95,93],[50,95],[5,50],[30,95]]}},
+  aspira:{name:'Aser Aspira 5',brand:'aser',boot:'aser',slots:2,ram:'d4',initRam:['ram_d4_8','ram_d4_8'],m2:'nvme',bay:true,chg:'chg_b65',dc:'cable',hidden:-1,mult:1,
+    look:{c1:'#b9bfc5',c2:'#969da4',lid:'#aab1b7',d1:'#c6cbd0',d2:'#a8aeb4',key:'#2a2f34',w:100,ar:'16/10.6',rad:'10px',pcb:['#1d4f7a','#256497'],lap:'#c6cbd0',
+      vents:[[10,8,80,9,'']],feet:[[20,92,'s'],[80,92,'s'],[20,9,'s'],[80,9,'s']],
+      screws:[[4,6],[24,4],[46,4],[68,4],[96,6],[96,40],[96,94],[66,95],[34,95],[4,94],[4,40]]}},
+  pavil:{name:'HB Pavilyon 15',brand:'hb',boot:'hb',slots:2,ram:'d4',initRam:['ram_d4_8','ram_d4_8'],m2:'nvme',bay:false,chg:'chg_b65',dc:'cable',hidden:0,mult:1.1,
+    look:{c1:'#61768d',c2:'#475a6e',lid:'#7186a0',d1:'#8fa2b6',d2:'#7a8da2',key:'#1e2833',w:97,ar:'16/10.4',rad:'18px',pcb:['#16603f','#1b7a4f'],lap:'#7186a0',
+      vents:[[30,14,40,18,'hc']],feet:[[24,88],[76,88],[18,12],[82,12]],
+      screws:[[6,10],[50,6],[94,10],[94,55],[94,92],[60,94],[40,94],[6,92],[6,55]]}},
+  latit:{name:'Dalle Latitud 5420',brand:'DALLE',boot:'dalle',slots:2,ram:'d4',initRam:['ram_d4_8','ram_d4_8'],m2:'nvme',bay:false,chg:'chg_c65',dc:'solder',hidden:-1,mult:1.3,usbc:true,
+    look:{c1:'#30343a',c2:'#1f2226',lid:'#2a2d31',d1:'#3c4046',d2:'#2c3035',key:'#15181b',w:90,ar:'16/10.8',rad:'8px',pcb:['#1a2a4a','#22365e'],lap:'#2a2d31',captive:true,
+      vents:[[60,30,30,12,'']],feet:[[50,10,'s2'],[50,90,'s2'],[12,50],[88,50]],
+      screws:[[6,8],[94,8],[6,92],[94,92],[30,92],[70,92],[30,8],[70,8]]}},
+  canavar:{name:'Canavar Abra A7',brand:'CANAVAR',boot:'canavar',slots:2,ram:'d4',initRam:['ram_d4_16','ram_d4_16'],m2:'nvme',bay:false,chg:'chg_b120',dc:'solder',hidden:-1,mult:1.4,gaming:true,
+    look:{c1:'#1d1d23',c2:'#111115',lid:'#1d1d23',d1:'#2a2a31',d2:'#1d1d23',key:'#0e0e12',glow:'#ff2b2b',w:104,ar:'16/10.8',rad:'12px',pcb:['#141414','#262626'],stripe:'#d22c2c',lap:'#1d1d23',
+      vents:[[6,9,40,30,'red'],[54,9,40,30,'red']],feet:[[15,88],[85,88],[15,12],[85,12]],
+      screws:[[4,6],[20,4],[38,4],[62,4],[80,4],[96,6],[96,50],[96,94],[70,95],[30,95],[4,94],[4,50]]}},
+  satelit:{name:'Tosiba Satelit L50',brand:'TOSIBA',boot:'tosiba',slots:2,ram:'d3',initRam:['ram_d3_4','ram_d3_4'],m2:null,bay:true,bayInit:'hdd_500',chg:'chg_b65',dc:'solder',hidden:0,mult:.8,old:true,
+    look:{c1:'#2c3542',c2:'#1d242e',lid:'#384354',d1:'#4a5262',d2:'#3a4150',key:'#1a1e24',w:100,ar:'16/11',rad:'20px',pcb:['#16603f','#1b7a4f'],lap:'#384354',
+      vents:[[6,8,26,20,''],[66,64,26,10,'']],feet:[[12,88],[88,88],[12,12],[88,12]],
+      screws:[[5,6],[30,5],[55,5],[95,6],[95,45],[95,94],[60,95],[30,95],[40,40],[60,40],[50,86],[20,40]]}},
+  zenkitap:{name:'Asis ZenKitap 14',brand:'ASIS',boot:'asis',slots:1,ram:'d4',initRam:['ram_d4_8'],m2:'nvme',bay:false,chg:'chg_c65',dc:'solder',hidden:-1,mult:1.15,usbc:true,
+    look:{c1:'#2e4266',c2:'#1f2e4a',lid:'#34496f',d1:'#425a83',d2:'#334a70',key:'#182235',w:88,ar:'16/10',rad:'10px',pcb:['#123b2a','#17543b'],lap:'#34496f',torx:true,
+      vents:[[18,7,64,7,'']],feet:[[50,8,'s2'],[50,92,'s2']],
+      screws:[[5,7],[35,5],[65,5],[95,7],[95,93],[65,95],[35,95],[5,93]]}},
+  kilic:{name:'MSG Kılıç 15',brand:'MSG',boot:'msg',slots:2,ram:'d4',initRam:['ram_d4_8','ram_d4_8'],m2:'nvme',bay:false,chg:'chg_b120',dc:'cable',hidden:-1,mult:1.25,gaming:true,
+    look:{c1:'#26282c',c2:'#17181b',lid:'#222428',d1:'#2e3035',d2:'#1f2125',key:'#0f1013',glow:'#e0242a',w:102,ar:'16/10.7',rad:'10px',pcb:['#141414','#222222'],stripe:'#e0242a',lap:'#222428',
+      vents:[[4,6,30,24,'red'],[66,6,30,24,'red'],[38,80,24,10,'']],feet:[[12,90],[88,90],[12,10],[88,10]],
+      screws:[[4,5],[30,4],[50,4],[70,4],[96,5],[96,50],[96,95],[60,95],[40,95],[4,95],[4,50]]}},
+  galaksi:{name:'Samsunk Galaksi Book 3',brand:'SAMSUNK',boot:'samsunk',slots:1,ram:'d4',initRam:['ram_d4_8'],m2:'nvme',bay:false,chg:'chg_c65',dc:'solder',hidden:1,mult:1.2,usbc:true,
+    look:{c1:'#9aa6b6',c2:'#7c8899',lid:'#a3aebd',d1:'#b4bdc9',d2:'#98a3b2',key:'#20252c',w:92,ar:'16/10.1',rad:'12px',pcb:['#1d4f7a','#256497'],lap:'#a3aebd',
+      vents:[[30,8,40,8,'hc']],feet:[[10,88],[90,88],[10,12],[90,12]],
+      screws:[[4,6],[50,5],[96,6],[96,94],[50,95],[4,94]]}},
+  matebook:{name:'Huvavi MateBook D15',brand:'HUVAVI',boot:'huvavi',slots:2,ram:'d4',initRam:['ram_d4_8',null],m2:'nvme',bay:false,chg:'chg_c65',dc:'solder',hidden:-1,mult:1.1,usbc:true,
+    look:{c1:'#5d6168',c2:'#44474d',lid:'#62666d',d1:'#71757c',d2:'#5d6168',key:'#1c1e21',w:98,ar:'16/10.3',rad:'12px',pcb:['#16603f','#1b7a4f'],lap:'#62666d',torx:true,
+      vents:[[8,10,84,8,'']],feet:[[50,88,'s2'],[50,12,'s2']],
+      screws:[[4,6],[28,4],[50,4],[72,4],[96,6],[96,94],[72,96],[28,96],[4,94]]}}
+};
+const nScrews=M=>M.look.screws.length+(M.hidden>=0?1:0);
+
+/* =================== parts =================== */
+const PARTS={
+  ram_d4_8:{n:B('DDR4 8 GB SO-DIMM 3200 MHz','DDR4 8 GB SO-DIMM 3200 MHz'),c:24,cat:'ram',ram:'d4'},
+  ram_d4_16:{n:B('DDR4 16 GB SO-DIMM 3200 MHz','DDR4 16 GB SO-DIMM 3200 MHz'),c:44,cat:'ram',ram:'d4'},
+  ram_d3_4:{n:B('DDR3L 4 GB SO-DIMM 1600 MHz','DDR3L 4 GB SO-DIMM 1600 MHz'),c:10,cat:'ram',ram:'d3'},
+  ssd_nvme:{n:B('M.2 2280 NVMe SSD 512 GB','M.2 2280 NVMe SSD 512 GB'),c:38,cat:'disk',form:'nvme'},
+  ssd_25:{n:B('2.5" SATA SSD 512 GB','2.5" SATA SSD 512 GB'),c:31,cat:'disk',form:'bay',ssd:true},
+  hdd_500:{n:B('2.5" HDD 500 GB (5400 rpm)','2.5" HDD 500 GB (5400 rpm)'),c:0,cat:'disk',form:'bay',hdd:true,nosell:true},
+  paste:{n:B('Termal macun 4 g (4 uygulama)','Thermal paste 4 g (4 applications)'),c:7,cat:'sarf'},
+  cmos:{n:B('CR2032 düğme pil (CMOS)','CR2032 coin cell (CMOS)'),c:1,cat:'sarf'},
+  chg_b65:{n:B('65W 19V adaptör, yuvarlak uç','65W 19V adapter, barrel tip'),c:15,cat:'adaptor',retail:1},
+  chg_b120:{n:B('120W 19.5V oyun laptopu adaptörü','120W 19.5V gaming laptop adapter'),c:26,cat:'adaptor'},
+  chg_c65:{n:B('65W USB-C PD adaptör','65W USB-C PD adapter'),c:20,cat:'adaptor',retail:1},
+  r_cable:{n:B('USB-C şarj kablosu 1 m','USB-C charging cable 1 m'),c:3,cat:'retail',retail:1,col:'#e6e6e6'},
+  r_mouse:{n:B('Kablolu USB mouse','Wired USB mouse'),c:4,cat:'retail',retail:1,col:'#2b2b2b'},
+  r_wmouse:{n:B('Kablosuz mouse','Wireless mouse'),c:9,cat:'retail',retail:1,col:'#3a6ea5'},
+  r_kbd:{n:B('USB klavye (Türkçe Q)','USB keyboard'),c:8,cat:'retail',retail:1,col:'#1f1f1f'},
+  r_cooler:{n:B('Laptop soğutucu stand','Laptop cooling pad'),c:12,cat:'retail',retail:1,col:'#2aa0ff'},
+  r_headset:{n:B('Mikrofonlu kulaklık','Headset with mic'),c:11,cat:'retail',retail:1,col:'#c0392b'},
+  r_flash:{n:B('64 GB USB bellek','64 GB USB flash drive'),c:5,cat:'retail',retail:1,col:'#f1c40f'},
+  r_bag:{n:B('15,6" laptop çantası','15.6" laptop bag'),c:13,cat:'retail',retail:1,col:'#5d4037'},
+  r_extssd:{n:B('Harici SSD 1 TB','External SSD 1 TB'),c:22,cat:'retail',retail:1,col:'#8e44ad'},
+  r_cam:{n:B('1080p web kamerası','1080p webcam'),c:10,cat:'retail',retail:1,col:'#34495e'},
+  r_hdmi:{n:B('HDMI kablosu 2 m','HDMI cable (2 m)'),c:3,cat:'retail',retail:1,col:'#7f8c8d'},
+  r_pad:{n:B('Mouse pad','Mouse pad'),c:2,cat:'retail',retail:1,col:'#16a085'}
+};
+for(const k in MODELS){const M=MODELS[k];const r=n=>Math.max(1,Math.round(n*M.mult));
+  PARTS['bat_'+k]={n:B(M.name+' batarya',M.name+' battery'),c:r(44),cat:'batarya',model:k};
+  PARTS['fan_'+k]={n:B(M.name+' fanı',M.name+' fan'),c:r(14),cat:'fan',model:k};
+  PARTS['dc_'+k]={n:M.usbc?B(M.name+' USB-C şarj portu',M.name+' USB-C charging port'):B(M.name+' DC jak'+(M.dc==='cable'?' (kablolu)':''),M.name+' DC jack'+(M.dc==='cable'?' (cable)':'')),c:r(7),cat:'dc',model:k};
+  PARTS['kb_'+k]={n:B(M.name+' klavye',M.name+' keyboard'),c:r(27),cat:'klavye',model:k};
+  PARTS['mb_'+k]={n:B(M.name+' anakart',M.name+' motherboard'),c:r(178),cat:'anakart',model:k};
+}
+const PN=pid=>X(PARTS[pid].n);
+const sp=pid=>pid==='paste'?4:Math.max(2,Math.round(PARTS[pid].c*(PARTS[pid].cat==='retail'?1.6:1.35)));
+const CATS=[['bench',B('Masadaki için','For the bench')],['all',B('Tümü','All')],['retail',B('Perakende','Retail')],['ram',B('RAM','RAM')],['disk',B('Disk','Drives')],['batarya',B('Batarya','Batteries')],['fan',B('Fan','Fans')],['adaptor',B('Adaptör','Chargers')],['dc',B('Şarj girişi','Charging ports')],['klavye',B('Klavye','Keyboards')],['anakart',B('Anakart','Motherboards')],['sarf',B('Sarf','Supplies')]];
+const TOOLS={
+  screw:{n:B('Hassas tornavida seti','Precision screwdriver set'),c:0,d:B('PH00, PH0, PH1 ve Torx uçlar.','PH00, PH0, PH1 and Torx bits.')},
+  spudger:{n:B('Plastik spatula ve pena','Plastic spudger and picks'),c:0,d:B('Kapağı çizmeden açar.','Opens covers without scratching.')},
+  brush:{n:B('Antistatik fırça','Anti-static brush'),c:0,d:B('Tozu kabaca alır.','Removes the worst of the dust.')},
+  multi:{n:B('Multimetre','Multimeter'),c:0,d:B('Voltaj ölçer.','Measures voltage.')},
+  ipa:{n:B('%99 izopropil alkol','99% isopropyl alcohol'),c:0,d:B('Eski macunu ve oksidi temizler.','Cleans old paste and corrosion.')},
+  winusb:{n:B('Windows kurulum USB\'si','Windows install USB'),c:0,d:B('Yeni diske Windows kurar.','Installs Windows on a new drive.')},
+  air:{n:B('Elektrikli hava üfleyici','Electric air duster'),c:20,d:B('Fan ve ızgaradaki tozu tamamen temizler. Fırça sadece kabaca alır.','Blows the fan and fins completely clean. A brush only gets the worst.')},
+  diag:{n:B('Teşhis USB\'si (MemTest86 + SMART)','Diagnostic USB (MemTest86 + SMART)'),c:7,d:B('Arızalı RAM\'i ve yıpranmış diski tespit eder.','Finds faulty RAM and worn-out drives.')},
+  strap:{n:B('Antistatik bileklik ve mat','Anti-static wrist strap and mat'),c:6,d:B('Statik elektriğin RAM\'i sessizce öldürmesini önler.','Stops static from silently killing RAM.')},
+  testpsu:{n:B('Üniversal test adaptörü','Universal test adapter'),c:16,d:B('Müşterinin adaptöründen şüphelenirsen sağlam bilinen bir güçle dene.','Try a known-good power source when you suspect the customer\'s charger.')},
+  driver:{n:B('Akülü hassas tornavida','Cordless precision screwdriver'),c:33,d:B('Tüm vidaları tek seferde söker ve takar, süreyi yarıya indirir.','Removes or fits all screws at once, in half the time.')},
+  clone:{n:B('Disk klonlama istasyonu','Drive cloning dock'),c:27,d:B('HDD\'den SSD\'ye geçerken dosyaları korur. +$8 hizmet.','Keeps files when moving from HDD to SSD. +$8 service.')},
+  solder:{n:B('Lehim istasyonu ve sıcak hava','Soldering and hot-air station'),c:78,d:B('Lehimli DC jak ve USB-C portlarını değiştirmeni sağlar.','Lets you replace soldered DC jacks and USB-C ports.')},
+  lamp:{n:B('Büyüteçli tezgah lambası','Magnifier bench lamp'),c:18,d:B('İnceleme işlemleri zaman almaz.','Inspecting parts takes no time.')},
+  ultra:{n:B('Ultrasonik temizleyici','Ultrasonic cleaner'),c:45,d:B('Sıvı temasında oksit temizliği 20 yerine 8 dakika sürer.','Corrosion cleaning after a spill takes 8 minutes instead of 20.')},
+  coffee:{n:B('Kahve makinesi','Coffee machine'),c:25,d:B('Müşterilere kahve ikram edersin: her teslimde itibar biraz daha artar, gecikme cezası yarıya iner.','Offer customers coffee: a little extra reputation on every handover, and half the late penalty.'),shop:1},
+  cabinet:{n:B('Parça dolabı','Parts cabinet'),c:30,d:B('Tedarikçiyle anlaşma: ekspres kargo %35 yerine %15 farkla gelir.','Supplier deal: express delivery costs 15% extra instead of 35%.'),shop:1},
+  tv:{n:B('Bekleme köşesi ve TV','Waiting corner and TV'),c:35,d:B('Tezgahta 3 yerine 5 müşteri bekleyebilir.','Up to 5 customers can wait at the counter instead of 3.'),shop:1},
+  bench2:{n:B('Profesyonel tamir masası','Pro repair bench'),c:60,d:B('Tüm tamir işlemleri %20 daha hızlı.','All repair work is 20% faster.'),shop:1},
+  vitrin:{n:B('Satış vitrini','Retail display case'),c:40,d:B('Aksesuar ve şarj aleti satmaya başlarsın: perakende müşteriler gelir.','Start selling accessories and chargers: walk-in shoppers arrive.'),shop:1},
+  shelf:{n:B('Ek raf','Extra shelf'),c:44,d:B('Raf kapasitesi 3\'ten 6 laptopa çıkar.','Shelf capacity goes from 3 to 6 laptops.'),shop:1},
+  light:{n:B('Vitrin ve aydınlatma','Lighting and storefront'),c:33,d:B('Müşteriler fiyatlara biraz daha toleranslı olur.','Customers tolerate slightly higher prices.'),shop:1},
+  sign:{n:B('Neon tabela','Neon sign'),c:56,d:B('Dükkan sokaktan görünür: günde +1 müşteri.','Seen from the street: +1 customer a day.'),shop:1}
+};
+
+/* =================== faults =================== */
+const FAULTS={
+  overheat:{day:1,w:3,labor:()=>20,setup:l=>{l.st.fan.dust=R(.82,.95);l.st.paste='dry';},
+    say:[B('Oyun açınca 10-15 dakika sonra kendiliğinden kapanıyor. Fan da uçak gibi bağırıyor.','It shuts down on its own 10-15 minutes into a game. The fan screams like a jet.'),B('Çok ısınıyor, avucum yanıyor. Bir süre sonra pat diye kapanıyor.','It gets so hot my palms burn. Then it just switches off.')],
+    hint:[B('Önce arızayı kendin gör: Windows\'ta Stres Testi\'ni çalıştır ve sıcaklığı izle.','See the fault yourself first: run the Stress Test in Windows and watch the temperature.'),B('Fanı temizle, soğutucuyu sök, eski macunu izopropille sil, yeni macun sür.','Clean the fan, remove the heatsink, wipe the old paste with isopropyl and apply fresh paste.')],
+    lesson:B('İşlemci 95-100°C\'ye ulaşınca kendini korumak için sistemi kapatır (termal kapanma). Toz fanın hava kanalını tıkar, kuruyan termal macun ısıyı soğutucuya iletemez. Bakım: fan temizliği ve macun yenileme, çoğu laptopta 2-3 yılda bir.','At 95-100°C the CPU shuts the system down to protect itself (thermal shutdown). Dust clogs the fan\'s airflow and dried thermal paste stops conducting heat to the heatsink. The fix is a fan clean and fresh paste, usually every 2-3 years.')},
+  fan_dead:{day:2,w:2,labor:()=>9,setup:l=>{l.st.fan.ok=false;l.st.fan.dust=R(.3,.5);},
+    say:[B('Fan bir süre hırıldadı, şimdi hiç ses gelmiyor. Biraz kullanınca kapanıyor.','The fan grumbled for a while, now it\'s silent. It shuts off after a bit of use.'),B('Bilgisayar sessizleşti ama çok ısınıyor, sonra kapanıyor.','It went quiet but it runs very hot, then switches off.')],
+    hint:[B('Alt kapak açıkken bilgisayarı çalıştır ve fanı izle. Stres testi de ipucu verir.','Power it on with the cover off and watch the fan. The stress test helps too.'),B('Fanı değiştir (modele özel fan siparişi gerekir).','Replace the fan (order the model-specific part).')],
+    lesson:B('Fan rulmanı aşınınca önce hırıltı yapar, sonra durur. Fan dönmezse soğutucu ısıyı atamaz. Tozu alınsa da bozuk fan düzelmez; değiştirilir.','A worn fan bearing grinds first, then stops. With no airflow the heatsink can\'t shed heat. Cleaning won\'t fix a dead fan; it gets replaced.')},
+  charger:{day:2,w:2,labor:()=>4,setup:l=>{l.charger.ok=false;l.st.bat.charge=0;},
+    say:[B('Şarj aletini takıyorum, ışık yanmıyor. Pil de bitti, hiç açılmıyor.','I plug the charger in and no light comes on. The battery\'s dead and it won\'t start.'),B('Dün akşamdan beri şarj olmuyor, şimdi tamamen öldü.','It stopped charging last night and now it\'s completely dead.')],
+    hint:[B('Adaptörü multimetreyle ölç. 19 V civarı olmalı.','Measure the charger with the multimeter. It should read about 19 V.'),B('Müşteriye modeline uygun yeni adaptör ver.','Give the customer a new charger that fits the model.')],
+    lesson:B('"Açılmıyor" denen laptopların önemli kısmı aslında adaptör arızasıdır. Çıkış, etiketteki voltajın %10-15 yakınında olmalı. Önce en basit ve ucuz olanı ölç.','Many "won\'t turn on" laptops just have a dead charger. Output should be within 10-15% of the label voltage. Measure the simplest, cheapest thing first.')},
+  bat_worn:{day:2,w:2,labor:()=>7,setup:l=>{l.st.bat.health=RI(30,42);},
+    say:[B('Prizden çekince 10 dakikada kapanıyor. Eskiden 4 saat giderdi.','Off the charger it dies in 10 minutes. It used to last 4 hours.'),B('Şarj %100 diyor, prizden çekince birden %10\'a düşüp kapanıyor.','It says 100%, then drops to 10% and dies when I unplug it.')],
+    hint:[B('BIOS\'ta (F2) ya da Windows\'ta Pil Raporu\'nda batarya sağlığına bak. Çalışırken adaptörü çekmeyi de dene.','Check battery health in the BIOS (F2) or the Battery Report in Windows. Try unplugging the charger while it runs.'),B('Bataryayı değiştir: önce konnektörü ayır, vidalarını sök.','Replace the battery: disconnect it first, then unscrew it.')],
+    lesson:B('Lityum bataryalar şarj döngüsüyle kapasite kaybeder. Tam şarj kapasitesi tasarım kapasitesinin %60\'ının altına inince değişim önerilir. Windows\'ta "powercfg /batteryreport" bu raporu verir.','Lithium batteries lose capacity with every cycle. Below 60% of design capacity, replacement is recommended. On Windows, "powercfg /batteryreport" produces this report.')},
+  bat_swollen:{day:3,w:1,labor:()=>7,setup:l=>{l.st.bat.swollen=true;l.st.bat.health=RI(15,30);},
+    say:[B('Touchpad yukarı kalktı, tıklamıyor. Alt kapak da sanki şişti.','The touchpad lifted up and won\'t click. The bottom cover looks swollen too.'),B('Masaya koyunca sallanıyor, touchpad kabarmış.','It wobbles on the desk and the touchpad is bulging.')],
+    hint:[B('Alt kapağı aç ve bataryaya bak. Kabarık touchpad genelde altında şişen bataryadan olur.','Open the cover and look at the battery. A raised touchpad usually means a swollen battery beneath it.'),B('Şişmiş bataryayı bükmeden, delmeden çıkar ve yenisini tak. Acil iş!','Remove the swollen battery without bending or puncturing it, and fit a new one. Urgent!')],
+    lesson:B('Şişmiş lityum batarya tehlikelidir: delinirse alev alabilir. Bükmeden söker, ateşe dayanıklı kapta bekletir ve geri dönüşüme verirsin.','A swollen lithium battery is dangerous: punctured, it can catch fire. Remove it without bending, keep it in a fire-safe container and recycle it.')},
+  ram_loose:{day:1,w:3,labor:()=>9,setup:l=>{l.st.ram.forEach(r=>{if(r)r.seated=false;});},
+    say:[B('Çantadan düşürdüm. Açılıyor, fan dönüyor ama ekran siyah, bip bip ses var.','I dropped it. It powers on and the fan spins, but the screen stays black and it beeps.'),B('Düşürdükten sonra ekran gelmiyor, ışıklar yanıyor ama.','Since I dropped it, no picture. The lights still come on though.')],
+    hint:[B('Aç ve dinle: fan dönüp ekran siyahsa ve bip varsa bellek şüphelisi. Kapağı açıp RAM\'e bak.','Power on and listen: fan spinning, black screen and beeps point to memory. Open it and look at the RAM.'),B('RAM\'i yerine "klik" sesi gelene kadar oturt.','Reseat the RAM until the latches click.')],
+    lesson:B('Bip kodları anakartın tek dili. Görüntü yok + bip çoğu zaman RAM\'in yerinden oynadığını gösterir. Darbe sonrası RAM ve disk bağlantılarını kontrol et.','Beep codes are the motherboard\'s only language. No picture plus beeps usually means the RAM came loose. After a drop, check RAM and drive connections.')},
+  ram_bad:{day:2,w:2,labor:()=>8,setup:l=>{const M=MODELS[l.model];if(!l.st.ram[1]&&M.slots>1)l.st.ram[1]={pid:M.initRam[0],ok:true,seated:true,owner:'cust'};const i=l.st.ram[1]?1:0;l.st.ram[i].ok=false;},
+    say:[B('Sürekli mavi ekran veriyor, MEMORY_MANAGEMENT gibi bir şey yazıyor.','It keeps blue-screening with something like MEMORY_MANAGEMENT.'),B('Oyunda, Excel\'de rastgele donup mavi ekran veriyor.','It freezes and blue-screens at random, in games and in Excel.')],
+    hint:[B('Mavi ekranı gör. Teşhis USB\'n varsa MemTest86 çalıştır; yoksa RAM\'leri tek tek takıp dene.','See the blue screen. Run MemTest86 if you have the diagnostic USB, or test the sticks one at a time.'),B('Arızalı modülü bul, aynı tipte (DDR4/DDR3) yenisiyle değiştir.','Find the faulty stick and replace it with the same type (DDR4/DDR3).')],
+    lesson:B('Arızalı RAM rastgele mavi ekrana ve bozuk dosyalara yol açar. Teknisyenler modülleri tek tek test eder. DDR3, DDR4 ve DDR5 birbirine uymaz; çentikleri farklıdır.','Bad RAM causes random blue screens and corrupted files. Techs test sticks one at a time. DDR3, DDR4 and DDR5 don\'t fit each other; the notches differ.')},
+  ssd_dead:{day:2,w:2,labor:()=>9,setup:l=>{const d=l.st.m2||l.st.bay;d.ok=false;},
+    say:[B('Açılışta "No bootable device" yazıyor. Dün akşam birden dondu, sonra bu.','It says "No bootable device" on startup. It froze last night and now this.'),B('Windows açılmıyor, siyah ekranda bir yazı çıkıyor.','Windows won\'t load, just some text on a black screen.')],
+    hint:[B('BIOS\'a (F2) gir: disk listede görünüyor mu?','Enter the BIOS (F2): is the drive listed?'),B('Arızalı diski çıkar, uygun yeni disk tak, F12 menüsünden Windows kur.','Remove the dead drive, fit a compatible new one, install Windows from the F12 menu.')],
+    lesson:B('BIOS diski hiç görmüyorsa disk ölmüştür ya da bağlantısı kopmuştur. NVMe ve SATA M.2 diskler benzer görünür ama farklı çentiklidir. Ölen SSD\'den veri kurtarmak çoğunlukla mümkün değildir: yedek önemli.','If the BIOS can\'t see the drive, it\'s dead or disconnected. NVMe and SATA M.2 drives look alike but are keyed differently. Data from a dead SSD is usually gone: backups matter.')},
+  hdd_slow:{day:3,w:2,models:['satelit','aspira'],labor:()=>11,setup:l=>{const st=l.st;if(l.model==='aspira'){st.m2=null;st.bay={pid:'hdd_500',ok:true,os:true,owner:'cust',smart:true};}else st.bay.smart=true;l.wantSSD=true;},
+    say:[B('Açılması 5 dakika sürüyor, içerden tık tık ses geliyor. Hızlansın istiyorum.','It takes 5 minutes to boot and clicks inside. I want it faster.'),B('Çok yavaş, Görev Yöneticisi\'nde disk hep %100. Dosyalarım da önemli.','It\'s painfully slow, the disk is always at 100%. My files matter too.')],
+    hint:[B('Windows\'u aç ve Görev Yöneticisi\'ne bak. Teşhis USB\'n varsa SMART değerleri de anlatır.','Boot Windows and open Task Manager. With the diagnostic USB, SMART tells you more.'),B('Eski HDD\'yi SSD ile değiştir; klonlama istasyonun varsa dosyaları taşı, yoksa temiz Windows kur.','Swap the HDD for an SSD; clone it if you own the dock, otherwise do a clean Windows install.')],
+    lesson:B('Tık tık sesi veren ve yeniden atanmış sektörü artan HDD ölmek üzeredir. SSD\'ye geçmek eski bir laptopu en çok hızlandıran yükseltmedir.','A clicking HDD with rising reallocated sectors is dying. Moving to an SSD is the single biggest speed-up for an old laptop.')},
+  cmos:{day:1,w:3,labor:()=>8,setup:l=>{l.st.cmosV=R(1.6,2.1);},
+    say:[B('Her açtığımda saat ve tarih 2009\'a dönüyor, bir de F1\'e bas diyor.','Every time I turn it on the date goes back to 2009 and it asks me to press F1.'),B('Sitelere girerken "sertifika hatası" veriyor, saat hep yanlış.','Websites throw certificate errors and the clock is always wrong.')],
+    hint:[B('Aç ve hata mesajını oku. Kapağı açıp düğme pili multimetreyle ölç; 3 V olmalı.','Power on and read the error. Then open it and measure the coin cell; it should be 3 V.'),B('CMOS pilini (CR2032) değiştir.','Replace the CMOS battery (CR2032).')],
+    lesson:B('Anakarttaki CR2032 düğme pil, laptop kapalıyken saati ve BIOS ayarlarını tutar. 2,5 V altına inince ayarlar sıfırlanır. Yanlış saat web sitelerinde sertifika hatası da çıkarır.','The CR2032 cell keeps the clock and BIOS settings while the laptop is off. Below 2.5 V they reset. A wrong clock also causes certificate errors on websites.')},
+  dcjack:{day:3,w:2,labor:l=>MODELS[l.model].dc==='cable'?13:24,setup:l=>{l.st.dc=false;},
+    say:[B('Şarj kablosunu belli bir açıyla tutunca şarj oluyor, bırakınca kesiliyor.','It only charges if I hold the plug at an angle.'),B('Fişi oynatınca şarj ışığı yanıp sönüyor.','The charge light flickers when I wiggle the plug.')],
+    hint:[B('Adaptörü ölç (sağlam mı?). Sonra kapağı açıp şarj girişinden voltaj ölç.','Measure the charger (is it OK?). Then open it and measure at the charging port.'),B('Şarj girişini değiştir. Lehimli ise lehim istasyonu gerekir.','Replace the charging port. A soldered one needs a soldering station.')],
+    lesson:B('Şarj girişi en çok yıpranan parçadır. Bazı modellerde kabloyla bağlanır, bazılarında anakarta lehimlidir; lehimli olanlar sıcak hava istasyonu ve ustalık ister.','The charging port is the part that wears most. Some are cabled, others soldered to the board; soldered ones need hot air and a steady hand.')},
+  wifi:{day:2,w:2,labor:()=>7,setup:l=>{l.st.ant=false;l.st.fan.dust=.1;},
+    say:[B('Başka bir yerde fan temizliği yaptırdım, o günden beri Wi-Fi çekmiyor.','I had the fan cleaned somewhere else and Wi-Fi hasn\'t worked since.'),B('Wi-Fi ağları görünmüyor, ancak modemin dibinde zayıf çekiyor.','No Wi-Fi networks show up, only a weak signal right next to the router.')],
+    hint:[B('Windows\'ta Wi-Fi\'ye bak. Sonra kapağı açıp Wi-Fi kartını incele.','Check Wi-Fi in Windows. Then open it and inspect the Wi-Fi card.'),B('Anten kablolarını karttaki konnektörlere tak (siyah ana, beyaz yardımcı).','Snap the antenna cables back on (black is main, white is aux).')],
+    lesson:B('Wi-Fi kartındaki iki minik anten konnektörü kapak açılırken kolayca çıkar. "Başka yerde açıldıktan sonra bozuldu" diyen müşteride önce yarım bırakılmış bağlantılara bak.','The two tiny antenna connectors pop off easily when a cover comes off. When a customer says "it broke after someone else opened it", check for loose connections first.')},
+  liquid:{day:3,w:1,labor:()=>27,setup:l=>{l.st.corr=true;l.st.kb=false;},
+    say:[B('Klavyeye çay döküldü. Bazı tuşlar çalışmıyor, içinden de koku geliyor.','I spilled tea on the keyboard. Some keys don\'t work and it smells inside.'),B('Kızım meyve suyu döktü, birkaç tuş yazmıyor.','My daughter spilled juice on it and a few keys are dead.')],
+    hint:[B('Windows\'ta Klavye Testi\'ni yap. Kapağı açıp anakartta oksitlenme ara.','Run the Keyboard Test in Windows. Open it and look for corrosion on the board.'),B('Bataryayı ayır, oksitlenmeyi izopropille temizle, klavyeyi değiştir.','Disconnect the battery, clean the corrosion with isopropyl, replace the keyboard.')],
+    lesson:B('Sıvı temasında ilk iş gücü kesmek ve bataryayı ayırmaktır. Akım altında kalan sıvı anakartta oksitlenme yapar. İzopropil ve fırçayla temizlenir; hasarlı klavye değiştirilir.','After a spill, cut the power and disconnect the battery first. Liquid under power corrodes the board. It\'s cleaned with isopropyl and a brush; a damaged keyboard is replaced.')},
+  mb_dead:{day:4,w:1,labor:()=>20,setup:l=>{l.st.dead=true;},
+    say:[B('Hiç açılmıyor. Adaptör sağlam, başka bir servis "anakart gitmiş" dedi ama çok pahalı istedi.','It won\'t turn on at all. The charger works; another shop said "the motherboard is gone" but quoted a fortune.'),B('Şarjdayken bir çıtırtı oldu, o andan beri hiç ışık yanmıyor.','There was a crackle while charging and since then no lights at all.')],
+    hint:[B('Önce adaptörü ölç ve gücü dene. Hiçbir ışık yoksa kapağı açıp anakartı incele.','Measure the charger and try power first. If nothing lights up, open it and inspect the motherboard.'),B('Anakartı değiştir: kapak açıkken "Anakart" düğmesine bas. Modele özel anakartı sipariş etmen gerekir.','Replace the motherboard: with the cover off, press "Motherboard". Order the model-specific board first.')],
+    lesson:B('Kısa devre yapan bir anakart bazen bileşen seviyesinde onarılır, ama çoğu serviste tüm kart değiştirilir. Parça pahalı olduğu için önce müşteriye fiyat sorulur; bazen yeni laptop almak daha mantıklıdır.','A shorted board can sometimes be repaired at component level, but most shops swap the whole board. It\'s expensive, so quote the customer first; sometimes a new laptop makes more sense.')},
+  virus:{day:2,w:2,labor:()=>11,setup:l=>{l.st.sw.virus=true;},
+    say:[B('Sürekli reklam açılıyor, tarayıcının ana sayfası değişmiş, çok da yavaş.','Ads keep popping up, the browser homepage changed and it\'s really slow.'),B('Kırık bir oyun indirdim, o günden beri garip pencereler çıkıyor.','I downloaded a cracked game and weird windows have been popping up ever since.')],
+    hint:[B('Windows\'u aç ve belirtiyi gör. Masaüstünde Antivirüs var.','Boot Windows and see the symptom. There\'s an Antivirus app on the desktop.'),B('Antivirüs\'te tam tarama yap, bulunan tehditleri karantinaya al.','Run a full scan in Antivirus and quarantine what it finds.')],
+    lesson:B('Kırık programlar ve sahte indirmeler zararlı yazılımın en yaygın kaynağıdır. Tam tarama ve karantina yapılır, tarayıcı ayarları sıfırlanır. Ağır durumda temiz kurulum en güvenlisidir, ama önce müşterinin dosyaları yedeklenir.','Cracked software and fake downloads are the most common source of malware. Run a full scan, quarantine, reset the browser. In bad cases a clean install is safest, but back up the customer\'s files first.')},
+  bootloop:{day:2,w:2,labor:()=>13,setup:l=>{l.st.sw.corrupt=true;},
+    say:[B('Güncelleme yarıda kaldı, şimdi sürekli "Otomatik Onarım hazırlanıyor" diyor.','An update got interrupted and now it keeps saying "Preparing Automatic Repair".'),B('Elektrik kesildi, o günden beri Windows açılmıyor, mavi bir onarım ekranında dönüp duruyor.','There was a power cut and since then Windows won\'t start, it just loops on a blue repair screen.')],
+    hint:[B('Aç ve ne olduğunu gör. Disk BIOS\'ta görünüyor mu?','Power on and see what happens. Does the BIOS see the drive?'),B('F12 ile kurulum USB\'sinden başlat ve Başlangıç Onarımı\'nı seç. Temiz kurulum yaparsan müşterinin dosyaları silinir!','Boot the install USB from F12 and choose Startup Repair. A clean install would wipe the customer\'s files!')],
+    lesson:B('Güncelleme sırasında elektrik kesilirse sistem dosyaları bozulabilir. Disk sağlamsa veriye dokunmadan Başlangıç Onarımı ya da "sfc /scannow" ve "DISM" ile düzelir. Temiz kurulum son çaredir, çünkü dosyaları siler.','A power cut during an update can corrupt system files. If the drive is healthy, Startup Repair or "sfc /scannow" and "DISM" fix it without touching data. A clean install is the last resort because it wipes files.')},
+  driver:{day:1,w:2,labor:()=>6,setup:l=>{l.st.sw.driver=true;},
+    say:[B('Windows\'u kendim yeniden kurdum. Şimdi ses yok, ekran da bulanık ve parlaklık ayarlanmıyor.','I reinstalled Windows myself. Now there\'s no sound, the screen looks blurry and brightness won\'t change.'),B('Hoparlörden ses gelmiyor, kulaklık da çalışmıyor.','No sound from the speakers, and headphones don\'t work either.')],
+    hint:[B('Windows\'ta Aygıt Yöneticisi\'ni aç: sarı ünlem var mı?','Open Device Manager in Windows: any yellow warnings?'),B('Üreticinin sürücülerini yükle.','Install the manufacturer\'s drivers.')],
+    lesson:B('Temiz kurulumdan sonra ses, ekran kartı ve touchpad için üreticinin sürücüleri gerekir. Aygıt Yöneticisi\'ndeki sarı ünlem eksik sürücüyü gösterir. Sorun donanımda değil, yazılımdadır.','After a clean install, audio, graphics and touchpad need the manufacturer\'s drivers. A yellow warning in Device Manager marks a missing driver. The hardware is fine; it\'s software.')},
+  bloat:{day:1,w:2,labor:()=>7,setup:l=>{l.st.sw.bloat=true;},
+    say:[B('Açılması çok uzun sürüyor, açılınca da bir sürü program kendiliğinden açılıyor.','It takes forever to start and loads of programs open on their own.'),B('Bilgisayar yeni sayılır ama çok yavaş, sağ altta bir sürü simge var.','It\'s fairly new but really slow, with tons of icons in the corner.')],
+    hint:[B('Windows\'u aç ve Görev Yöneticisi\'nde başlangıç programlarına bak.','Boot Windows and check startup programs in Task Manager.'),B('Gereksiz başlangıç programlarını devre dışı bırak.','Disable the unnecessary startup programs.')],
+    lesson:B('Her kurulan program kendini başlangıca ekleyebilir. Görev Yöneticisi\'nin Başlangıç sekmesinden gereksizleri kapatmak açılışı ciddi hızlandırır. Parça değiştirmeye gerek yoktur; müşteriye boşuna SSD satma.','Every installed program can add itself to startup. Disabling the unneeded ones in Task Manager\'s Startup tab speeds boot a lot. No parts needed; don\'t upsell an SSD for nothing.')},
+  ram_up:{day:2,w:2,models:['ideabook','matebook','aspira','pavil','latit','satelit','kilic'],labor:()=>5,setup:l=>{l.st.ram[1]=null;l.wantRam=true;},
+    say:[B('Chrome\'da birkaç sekme açınca kasıyor. RAM ekletmek istiyorum.','It lags with a few Chrome tabs open. I\'d like more RAM.'),B('Okul için Photoshop kullanacağım, RAM yükseltmesi yapabilir misiniz?','I\'ll be using Photoshop for school, can you upgrade the RAM?')],
+    hint:[B('Alt kapağı aç ve boş RAM yuvasına bak. Tipi önemli: DDR3 mü DDR4 mü?','Open the cover and look for an empty RAM slot. The type matters: DDR3 or DDR4?'),B('Boş yuvaya uygun tipte RAM tak (stokta yoksa sipariş et).','Fit matching RAM in the empty slot (order it if you have none).')],
+    lesson:B('RAM yükseltmesinde önce yuva tipine ve boş yuva olup olmadığına bakılır. Çift kanal için aynı boyut ve hızda modül tercih edilir. Bazı ince laptoplarda RAM anakarta lehimlidir ve yükseltilemez.','For a RAM upgrade, check the slot type and whether a slot is free. For dual-channel, match size and speed. On some thin laptops RAM is soldered and can\'t be upgraded.')}
+};
+const NAMES=['Ayşe','Mehmet','Zeynep','Emre','Elif','Burak','Fatma','Can','Selin','Hakan','Merve','Oğuz','Derya','Kerem','Esra','Tolga','Gül','Serkan','Buse','Murat','Deniz','Cem'];
+const SUR=['Yılmaz','Kaya','Demir','Şahin','Çelik','Aydın','Arslan','Doğan','Koç','Kurt','Öztürk','Polat','Aksoy','Erdem'];
+const ROLES=[B('üniversite öğrencisi','university student'),B('muhasebeci','accountant'),B('öğretmen','teacher'),B('yazılımcı','software developer'),B('esnaf','shopkeeper'),B('emekli','retiree'),B('grafik tasarımcı','graphic designer'),B('mimar','architect'),B('e-spor oyuncusu','esports player'),B('hemşire','nurse'),B('avukat','lawyer'),B('lise öğrencisi annesi','parent of a high-schooler')];
+const HAIR=['#1f1a16','#3b2a1d','#6b4a2a','#a87c4f','#c9c2b8','#2c2c2c','#7a3b1d'];
+const SHIRT=['#2f6f9e','#9e3f2f','#3f8a5a','#7a5aa0','#c28a2e','#40505c','#a0566e'];
+const ACH={first:B('İlk tamir','First repair'),five:B('5 tamir tamamlandı','5 repairs done'),ten:B('10 tamir tamamlandı','10 repairs done'),rich:B('Toplam $500 kazanç','$500 earned in total'),star:B('4,5 yıldız itibar','4.5-star reputation'),retail:B('İlk perakende satış','First retail sale'),solder:B('Lehim ustası','Solder master'),day5:B('5. güne ulaştın','Reached day 5'),honest:B('Dürüst esnaf: 5 adil fatura','Honest trader: 5 fair invoices')};
+
+/* =================== state =================== */
+let S=null;
+const ui={view:'counter',sheet:null,modal:null,pcTab:'stock',cat:'bench',labels:true,closing:false};
+const RT={tok:0};
+function save(){if(!S)return;try{localStorage.setItem(KEY,JSON.stringify(S));}catch(e){}}
+function loadSave(){try{const s=localStorage.getItem(KEY);return s?JSON.parse(s):null;}catch(e){return null;}}
+const job=id=>S.jobs.find(j=>j.id===id);
+const cur=()=>S.benchId?job(S.benchId):null;
+const L=()=>{const j=cur();return j?j.l:null;};
+const has=k=>!!S.tools[k];
+const stock=p=>S.stock[p]||0;
+const shelfCap=()=>has('shelf')?6:3;
+
+function newLaptop(mk){
+  const M=MODELS[mk];const ram=[];
+  for(let i=0;i<M.slots;i++){const p=M.initRam[i];ram.push(p?{pid:p,ok:true,seated:true,owner:'cust'}:null);}
+  return {model:mk,charger:{ok:true},wantSSD:false,
+    st:{view:'front',powered:false,screen:'off',app:null,plug:null,screws:Array(nScrews(M)).fill(true),feetOff:false,coverOn:true,clip:false,batConn:true,
+      bat:{pid:'bat_'+mk,ok:true,owner:'cust',health:RI(78,95),charge:RI(40,90),swollen:false},
+      fan:{ok:true,dust:R(.08,.25)},hs:true,paste:'good',cmosV:R(2.95,3.15),ram,
+      m2:M.m2?{pid:'ssd_nvme',ok:true,os:true,owner:'cust'}:null,
+      bay:M.bay&&M.bayInit?{pid:M.bayInit,ok:true,os:true,owner:'cust',smart:false}:null,
+      dc:true,ant:true,kb:true,corr:false,dead:false,sw:{}},
+    tray:[],billed:[],found:{},log:[],hints:0,triedPry:false,lastStress:null};
+}
+function makeCustomer(fk,mk,over){
+  const fl=FAULTS[fk];
+  if(!mk){const ms=fl.models||Object.keys(MODELS);mk=pick(ms);}
+  const l=newLaptop(mk);fl.setup(l);
+  const c={id:S.nid++,name:pick(NAMES)+' '+pick(SUR),role:pick(ROLES),hair:pick(HAIR),shirt:pick(SHIRT),say:pick(fl.say),faults:[fk],l};
+  return Object.assign(c,over||{});
+}
+function retailCustomer(){
+  const items=Object.keys(PARTS).filter(k=>PARTS[k].retail);
+  const want=pick(items);
+  return {id:S.nid++,retail:true,want,name:pick(NAMES)+' '+pick(SUR),role:pick(ROLES),hair:pick(HAIR),shirt:pick(SHIRT),v:RI(0,2)};
+}
+function randomCustomer(){
+  if(has('vitrin')&&Math.random()<.4)return retailCustomer();
+  const pool=[];for(const k in FAULTS){const f=FAULTS[k];if(S.day>=f.day)for(let i=0;i<f.w;i++)pool.push(k);}
+  return makeCustomer(pick(pool));
+}
+function genArrivals(from){
+  let n=2+Math.floor(S.rep-2)+(has('sign')?1:0)+(has('vitrin')?1:0)+(S.day>=3?1:0);n=clamp(n,1,7);
+  const a=[];const start=Math.max(from,9*60+30);
+  for(let i=0;i<n;i++)a.push(Math.round(R(start,17*60+40)));
+  return a.filter(x=>x<CLOSE-60).sort((x,y)=>x-y);
+}
+function newGame(name){
+  S={v:2,name:name||'Light Computer Services',money:55,day:1,time:9*60,rep:2.5,
+    tools:{screw:1,spudger:1,brush:1,multi:1,ipa:1,winusb:1},stock:{paste:4,cmos:2},orders:[],jobs:[],queue:[],arrivals:[],benchId:null,nid:1,
+    tut:{on:true,step:0},stats:{fixed:0,earned:0,sold:0,fair:0},today:{inc:0,exp:0},ledger:[],reviews:[],ach:{},invNo:1000};
+  S.queue.push(makeCustomer('overheat','ideabook',{name:'Selim Abi',role:B('komşun, kuruyemişçi','your neighbour, runs the nut shop'),hair:'#c9c2b8',shirt:'#6b4a2a',
+    say:B('Evladım hayırlı olsun! Oğlanın bilgisayarı oyun açınca kapanıyor, fan da uçak gibi bağırıyor. İlk müşterin ben olayım, bir bakıver.','Congratulations on the shop, kid! My son\'s laptop shuts down when he games, and the fan screams like a jet. Let me be your first customer.'),tut:true}));
+  ui.view='counter';
+}
+
+/* =================== audio: sfx =================== */
+let AC=null,master=null,musBus=null,fanSrc=null;
+function ac(){
+  if(!AC){try{AC=new(window.AudioContext||window.webkitAudioContext)();master=AC.createGain();master.gain.value=PREF.vol;master.connect(AC.destination);musBus=AC.createGain();musBus.gain.value=PREF.music?.5:0;musBus.connect(master);}catch(e){AC=null;}}
+  if(AC&&AC.state==='suspended')AC.resume();return AC;
+}
+function tone(f,d,type,v,t0,dest){const a=ac();if(!a)return;if(!dest&&!PREF.sfx)return;t0=t0||0;const o=a.createOscillator(),g=a.createGain();o.type=type||'sine';o.frequency.value=f;const st=a.currentTime+t0;g.gain.setValueAtTime(.0001,st);g.gain.linearRampToValueAtTime(v||.12,st+.008);g.gain.exponentialRampToValueAtTime(.0001,st+d);o.connect(g).connect(dest||master);o.start(st);o.stop(st+d+.05);}
+let NB=null;function noiseBuf(a){if(!NB){NB=a.createBuffer(1,a.sampleRate*2,a.sampleRate);const d=NB.getChannelData(0);for(let i=0;i<d.length;i++)d[i]=Math.random()*2-1;}return NB;}
+function noise(d,v,fc,t0,dest,q){const a=ac();if(!a)return;if(!dest&&!PREF.sfx)return;t0=t0||0;const s=a.createBufferSource();s.buffer=noiseBuf(a);const f=a.createBiquadFilter();f.type='bandpass';f.frequency.value=fc||2000;if(q)f.Q.value=q;const g=a.createGain();const st=a.currentTime+t0;g.gain.setValueAtTime(v||.2,st);g.gain.exponentialRampToValueAtTime(.0001,st+d);s.connect(f).connect(g).connect(dest||master);s.start(st,Math.random());s.stop(st+d+.05);}
+function sfx(k){switch(k){
+  case 'screw':tone(2400,.04,'square',.04);tone(1700,.05,'square',.04,.07);tone(1300,.05,'square',.04,.14);break;
+  case 'snap':noise(.07,.35,3200);noise(.05,.3,2500,.12);break;
+  case 'bell':tone(1318,.7,'sine',.13);tone(1046,1,'sine',.11,.2);tone(2637,.4,'sine',.03);break;
+  case 'cash':noise(.08,.3,4000);tone(1567,.15,'triangle',.14,.05);tone(2093,.6,'triangle',.14,.17);noise(.25,.1,6000,.1);break;
+  case 'drawer':noise(.25,.2,700);tone(220,.1,'square',.05,.2);break;
+  case 'print':for(let i=0;i<12;i++)noise(.06,.12,2400+(i%2)*600,i*.12,null,6);break;
+  case 'deliver':tone(784,.18,'sine',.12);tone(988,.18,'sine',.12,.18);tone(1175,.35,'sine',.12,.36);break;
+  case 'ach':[523,659,784,1046].forEach((f,i)=>tone(f,.3,'triangle',.08,i*.09));break;
+  case 'err':tone(150,.25,'sawtooth',.1);break;
+  case 'zap':noise(.35,.5,6000);tone(80,.5,'sawtooth',.2);break;
+  case 'click':tone(700,.03,'square',.05);break;
+  case 'brush':noise(.7,.12,1400);noise(.5,.08,900,.4);break;
+  case 'air':noise(1.2,.25,3500);break;
+  case 'ok':tone(880,.12,'sine',.1);tone(1320,.25,'sine',.1,.12);break;
+  case 'door':tone(1318,.5,'sine',.1);tone(988,.8,'sine',.1,.25);break;
+}}
+const BOOTJ={lenvo:[[659,.2],[880,.4]],aser:[[523,.12],[659,.12],[784,.35]],hb:[[587,.25],[740,.25],[880,.5]],dalle:[[440,.3],[660,.5]],canavar:[[220,.15],[330,.15],[440,.15],[880,.4]],tosiba:[[784,.2],[659,.2],[523,.5]],asis:[[698,.2],[1046,.5]],msg:[[196,.1],[392,.1],[587,.35]],samsunk:[[523,.15],[784,.15],[1046,.4]],huvavi:[[880,.2],[660,.2],[880,.4]]};
+function bootJingle(b){let t0=0;(BOOTJ[b]||[]).forEach(([f,d])=>{tone(f,d+.2,'triangle',.08,t0);t0+=d*.7;});}
+function introSound(){
+  const a=ac();if(!a||!PREF.sfx)return;
+  /* roller shutter: rattling slats, low rumble, clunk at the top */
+  noise(2.5,.14,170,.8,null,.8);
+  for(let i=0;i<22;i++)noise(.08,.16+Math.random()*.1,650+Math.random()*600,.8+i*.11+Math.random()*.03,null,2.5);
+  tone(70,.35,'square',.12,3.25);noise(.25,.35,380,3.25,null,1.5);
+  /* neon sign: crackling flicker, then a mains hum */
+  [3.0,3.07,3.18,3.26,3.34].forEach(x=>{noise(.05,.3,5200,x,null,1);tone(110,.06,'sawtooth',.09,x);});
+  const o=a.createOscillator(),o2=a.createOscillator(),lp=a.createBiquadFilter(),g=a.createGain();o.type='sawtooth';o2.type='sine';o.frequency.value=100;o2.frequency.value=50;lp.type='lowpass';lp.frequency.value=500;
+  const st=a.currentTime+3.4;g.gain.setValueAtTime(.0001,st);g.gain.linearRampToValueAtTime(.05,st+.08);g.gain.setValueAtTime(.05,st+1.2);g.gain.exponentialRampToValueAtTime(.0001,st+3.2);
+  o.connect(lp);o2.connect(lp);lp.connect(g).connect(master);o.start(st);o2.start(st);o.stop(st+3.3);o2.stop(st+3.3);
+  tone(1760,.25,'sine',.05,3.4);
+}
+function winChime(){[[523,0],[659,.12],[784,.24],[1046,.4]].forEach(([f,o])=>tone(f,.6,'sine',.07,o));}
+function beeps(n){for(let i=0;i<n;i++)tone(900,.5,'square',.06,i*.75);}
+function fanSound(on){
+  const a=ac();if(fanSrc){try{fanSrc.stop();}catch(e){}fanSrc=null;}
+  if(!on||!a||!PREF.sfx)return;const l=L();if(!l||!l.st.fan.ok)return;
+  fanSrc=a.createBufferSource();fanSrc.buffer=noiseBuf(a);fanSrc.loop=true;
+  const f=a.createBiquadFilter();f.type='lowpass';f.frequency.value=600+l.st.fan.dust*1400;
+  const g=a.createGain();g.gain.value=.03+l.st.fan.dust*.08;fanSrc.connect(f).connect(g).connect(master);fanSrc.start();
+}
+
+/* =================== audio: music (generated lo-fi) =================== */
+const MUS={timer:null,step:0,next:0,mode:'shop'};
+const CH=[[220,261.6,329.6,392],[174.6,220,261.6,329.6],[261.6,329.6,392,493.9],[196,246.9,293.7,329.6]];
+const BASS=[110,87.3,130.8,98];
+const PENTA=[440,523.3,587.3,659.3,784,880,1046.5];
+function musicStart(mode){const a=ac();if(!a||!S||!S.tut.on)return;if(musBus)musBus.gain.setValueAtTime(PREF.music?.5:0,a.currentTime);MUS.mode=mode;if(MUS.timer)return;MUS.next=a.currentTime+.15;MUS.step=0;MUS.timer=setInterval(musTick,90);}
+function musicStop(){if(!MUS.timer)return;const tm=MUS.timer;MUS.timer=null;if(musBus&&AC){musBus.gain.setTargetAtTime(0,AC.currentTime,.6);}setTimeout(()=>{clearInterval(tm);if(musBus&&AC&&!MUS.timer)musBus.gain.setValueAtTime(PREF.music?.5:0,AC.currentTime);},2500);}
+function musicApply(){if(musBus&&AC)musBus.gain.setTargetAtTime(PREF.music?.5:0,AC.currentTime,.3);}
+function musTick(){
+  const a=AC;if(!a)return;const e=60/(MUS.mode==='title'?64:78)/2;
+  while(MUS.next<a.currentTime+.3){
+    const s=MUS.step,c=Math.floor(s/16)%4,k=s%16,tt=MUS.next-a.currentTime;
+    if(PREF.music){
+      if(k===0)CH[c].forEach((f,i)=>{pad(f,e*16,tt,i);});
+      if(MUS.mode!=='title'){
+        if(k%8===0)kick(tt);
+        if(k%8===4)noise(.18,.08,1800,tt,musBus,1.2);
+        if(k%2===1)noise(.04,.03,8000,tt,musBus,3);
+        if(k===0||k===6||k===10)tone(BASS[c]*(k===6?1.5:1),e*2.2,'sine',.16,tt,musBus);
+        if(Math.random()<.22&&k%2===0)tone(pick(PENTA),e*1.6,'triangle',.05,tt,musBus);
+      }else if(Math.random()<.12)tone(pick(PENTA),e*3,'sine',.05,tt,musBus);
+    }
+    MUS.next+=e;MUS.step++;
+  }
+}
+function pad(f,d,t0,i){const a=AC;const o=a.createOscillator(),o2=a.createOscillator(),g=a.createGain(),lp=a.createBiquadFilter();lp.type='lowpass';lp.frequency.value=900;o.type='triangle';o2.type='sine';o.frequency.value=f;o2.frequency.value=f*1.004;const st=a.currentTime+t0;g.gain.setValueAtTime(.0001,st);g.gain.linearRampToValueAtTime(.035,st+.8);g.gain.linearRampToValueAtTime(.0001,st+d);o.connect(lp);o2.connect(lp);lp.connect(g).connect(musBus);o.start(st);o2.start(st);o.stop(st+d+.1);o2.stop(st+d+.1);}
+function kick(t0){const a=AC;const o=a.createOscillator(),g=a.createGain();const st=a.currentTime+t0;o.frequency.setValueAtTime(120,st);o.frequency.exponentialRampToValueAtTime(45,st+.15);g.gain.setValueAtTime(.25,st);g.gain.exponentialRampToValueAtTime(.0001,st+.25);o.connect(g).connect(musBus);o.start(st);o.stop(st+.3);}
+
+/* =================== time & economy =================== */
+function canWork(){if(S.time>=CLOSE){openModal({k:'closing'});return false;}return true;}
+function spend(min){
+  if(!min)return;
+  if(has('driver')&&ui._screwing)min=min/2;
+  S.time=Math.round((S.time+min)*10)/10;
+  for(const j of S.jobs){const l=j.l,st=l.st;if(powerSrc(l)==='ac'&&st.batConn&&st.bat&&st.bat.ok&&!st.bat.swollen&&st.bat.health>=45)st.bat.charge=Math.min(100,st.bat.charge+min*.9);}
+  while(S.arrivals.length&&S.arrivals[0]<=S.time){
+    S.arrivals.shift();
+    if(S.queue.length<(has('tv')?5:3)){S.queue.push(randomCustomer());toast(B('Kapı zili çaldı: tezgahta yeni müşteri var.','The door chime rang: a new customer at the counter.'),'door');sfx('door');}
+  }
+  for(const o of S.orders)if(o.at!=null&&o.day===S.day&&o.at<=S.time)deliver(o);
+  S.orders=S.orders.filter(o=>!o.done);
+  if(S.time>=CLOSE&&!ui.closing){ui.closing=true;setTimeout(()=>openModal({k:'closing'}),400);}
+}
+function deliver(o){o.done=true;if(o.pid==='paste')S.stock.paste=(S.stock.paste||0)+4*o.q;else S.stock[o.pid]=(S.stock[o.pid]||0)+o.q;
+  toast(B('Kargo geldi: '+o.q+'× '+PARTS[o.pid].n.tr,'Delivery arrived: '+o.q+'× '+PARTS[o.pid].n.en),'pkg');sfx('deliver');}
+function ledger(desc,amt){S.ledger.unshift({d:S.day,t:hhmm(S.time),desc,amt});if(S.ledger.length>80)S.ledger.length=80;}
+function pay(n,desc){S.money-=n;S.today.exp+=n;ledger(desc,-n);}
+function earn(n,desc){S.money+=n;S.today.inc+=n;S.stats.earned+=n;ledger(desc,n);if(S.stats.earned>=500)ach('rich');}
+function repAdd(d){S.rep=clamp(S.rep+d,0,5);if(S.rep>=4.5)ach('star');}
+function ach(k){if(!S||S.ach[k])return;S.ach[k]=S.day;toast(B('Başarım: '+ACH[k].tr,'Achievement: '+ACH[k].en),'ach');sfx('ach');}
+
+/* =================== log & toasts =================== */
+function note(o,k){const l=L();if(!l)return;l.log.push({t:o,time:hhmm(S.time),k:k||''});if(l.log.length>60)l.log.shift();}
+function found(k){const l=L();if(l)l.found[k]=true;}
+const TICON={pkg:'<svg viewBox="0 0 24 24"><path d="M3 7l9-4 9 4v10l-9 4-9-4zM3 7l9 4 9-4M12 11v10"/></svg>',ach:'<svg viewBox="0 0 24 24"><path d="M7 4h10v5a5 5 0 0 1-10 0zM12 14v4M8 20h8M7 6H4a3 3 0 0 0 3 4M17 6h3a3 3 0 0 1-3 4"/></svg>',door:'<svg viewBox="0 0 24 24"><path d="M12 3a5 5 0 0 1 5 5v5l2 3H5l2-3V8a5 5 0 0 1 5-5zM10 19a2 2 0 0 0 4 0"/></svg>'};
+function toast(o,kind){const b=$('#toasts');while(b.children.length>=3)b.firstChild.remove();const d=document.createElement('div');d.className='toast '+(kind||'');d.innerHTML=(TICON[kind]||'')+'<span>'+esc(X(o))+'</span>';b.appendChild(d);setTimeout(()=>d.remove(),3600);}
+
+/* =================== simulation =================== */
+function batUsable(l){const st=l.st,b=st.bat;return !!(st.batConn&&b&&b.ok&&b.charge>3&&b.health>=45);}
+function plugState(l){const st=l.st;if(!st.plug)return null;const ok=st.plug==='test'||l.charger.ok;if(!ok)return null;return st.dc?'ok':'flaky';}
+function powerSrc(l){const p=plugState(l);if(p==='ok')return 'ac';if(batUsable(l))return 'bat';if(p==='flaky')return 'flaky';return null;}
+function chargeLed(l){const st=l.st,p=plugState(l);if(!p)return '';if(p==='flaky')return 'flick';if(!st.batConn||!st.bat)return '';if(st.bat.swollen||st.bat.health<45)return 'blink';return st.bat.charge<98?'amber':'on';}
+function bootDrive(l){return [l.st.m2,l.st.bay].find(d=>d&&d.ok&&d.os)||null;}
+function ramBad(l){return l.st.ram.some(r=>r&&r.seated&&!r.ok);}
+function stressTemp(l){const st=l.st,M=MODELS[l.model];let x=66+st.fan.dust*26+(st.paste==='dry'?17:st.paste==='none'?42:0)+(st.fan.ok?0:34)+(M.gaming?6:0)+R(-1.5,1.5);if(!st.coverOn)x-=2;return Math.round(x);}
+function problems(l){
+  const st=l.st,P=[];const add=(id,tx,c)=>P.push({id,t:tx,c});
+  if(st.dead)add('dead',B('Anakart kısa devre yaptı, hiç açılmıyor.','The motherboard shorted and won\'t power on.'),B('Bu artık hiç açılmıyor! Getirdiğimde en azından açılıyordu!','It won\'t even turn on now! It did when I brought it in!'));
+  if(!st.coverOn)add('cover',B('Alt kapak takılı değil.','The bottom cover isn\'t fitted.'),B('Usta, kapağı takmayı unutmuşsun.','You forgot to put the cover back on.'));
+  else if(st.screws.some(x=>!x))add('screws',B('Alt kapakta eksik vida var.','Screws are missing from the cover.'),B('Altında vida eksik, kapak esniyor.','There are screws missing underneath, the cover flexes.'));
+  if(st.feetOff)add('feet',B('Bir lastik ayak yerinde değil.','A rubber foot is missing.'),B('Lastik ayaklardan biri yok, masada sallanıyor.','One rubber foot is gone and it wobbles.'));
+  if(!st.bat)add('nobat',B('Batarya takılı değil.','No battery fitted.'),B('Prizden çekince kapanıyor, pil yok mu bunda?','It dies off the charger. Is there even a battery?'));
+  else{
+    if(!st.batConn)add('batconn',B('Batarya konnektörü bağlı değil.','The battery connector is unplugged.'),B('Prizden çekince anında kapanıyor!','It dies the moment I unplug it!'));
+    if(st.bat.swollen)add('swollen',B('Batarya şişmiş.','The battery is swollen.'),B('Touchpad hâlâ kalkık!','The touchpad is still raised!'));
+    else if(st.bat.health<60)add('worn',B('Batarya yıpranmış (sağlık %'+Math.round(st.bat.health)+').','The battery is worn (health '+Math.round(st.bat.health)+'%).'),B('Pil hâlâ çabucak bitiyor.','The battery still drains in minutes.'));
+  }
+  if(!l.charger.ok)add('charger',B('Müşterinin adaptörü arızalı.','The customer\'s charger is dead.'),B('Şarj aleti hâlâ çalışmıyor, ışık yanmıyor.','The charger still doesn\'t work, no light.'));
+  if(!st.dc)add('dc',B('Şarj girişi arızalı.','The charging port is faulty.'),B('Kabloyu oynatınca şarj hâlâ gidip geliyor.','Charging still cuts in and out when I move the cable.'));
+  if(!st.hs)add('hs',B('Soğutucu takılı değil!','The heatsink isn\'t fitted!'),B('Açar açmaz kapanıyor!','It shuts down right after turning on!'));
+  else if(st.paste!=='good')add('paste',st.paste==='dry'?B('Termal macun kurumuş.','The thermal paste has dried out.'):B('İşlemcide termal macun yok!','There\'s no thermal paste on the CPU!'),B('Hâlâ çok ısınıp kapanıyor.','It still overheats and shuts down.'));
+  if(!st.fan.ok)add('fan',B('Fan çalışmıyor.','The fan doesn\'t spin.'),B('Fan sesi hâlâ yok, ısınıyor.','Still no fan noise, and it runs hot.'));
+  else if(st.fan.dust>.4)add('dust',B('Fan ve hava kanalı tozlu.','The fan and airflow are dusty.'),B('Hâlâ çok ısınıyor, fan bağırıyor.','It still runs hot and the fan screams.'));
+  const sticks=st.ram.filter(Boolean);
+  if(!sticks.length)add('noram',B('RAM takılı değil.','No RAM fitted.'),B('Ekran hâlâ siyah, bip sesi geliyor.','Still a black screen and beeps.'));
+  else if(sticks.some(r=>!r.seated))add('seat',B('RAM yerine tam oturmamış.','The RAM isn\'t fully seated.'),B('Hâlâ siyah ekran ve bip sesi.','Still a black screen and beeps.'));
+  if(sticks.some(r=>!r.ok))add('badram',B('Arızalı RAM modülü takılı.','A faulty RAM stick is fitted.'),B('Hâlâ mavi ekran veriyor!','It still blue-screens!'));
+  const drives=[st.m2,st.bay].filter(Boolean);
+  if(drives.some(d=>!d.ok))add('baddisk',B('Arızalı disk takılı.','A dead drive is fitted.'),B('Disk hâlâ sorunlu görünüyor.','The drive still seems broken.'));
+  const bd=bootDrive(l);
+  if(!bd)add('noboot',B('Windows kurulu çalışan disk yok.','No working drive with Windows installed.'),B('Ekranda hâlâ "No bootable device" yazıyor.','It still says "No bootable device".'));
+  else if(PARTS[bd.pid].hdd&&l.wantSSD)add('hdd',B('Müşteri SSD istiyordu; hâlâ eski HDD\'den açılıyor.','The customer wanted an SSD; it still boots from the old HDD.'),B('Hiç hızlanmamış ki!','It\'s not any faster!'));
+  if(st.cmosV<2.5)add('cmos',B('CMOS pili bitik.','The CMOS battery is flat.'),B('Saat yine 2009\'a döndü!','The clock went back to 2009 again!'));
+  if(!st.ant)add('ant',B('Wi-Fi anten kabloları takılı değil.','The Wi-Fi antenna cables are unplugged.'),B('Wi-Fi hâlâ çekmiyor.','Wi-Fi still doesn\'t work.'));
+  if(st.corr)add('corr',B('Anakartta sıvı kaynaklı oksitlenme var.','There\'s liquid corrosion on the board.'),B('İçinden hâlâ koku geliyor.','It still smells inside.'));
+  if(!st.kb)add('kb',B('Klavye arızalı.','The keyboard is faulty.'),B('Bazı tuşlar hâlâ çalışmıyor.','Some keys still don\'t work.'));
+  const sw=st.sw||{};
+  if(bd){
+    if(sw.corrupt)add('corrupt',B('Windows açılmıyor, Otomatik Onarım döngüsünde.','Windows is stuck in an Automatic Repair loop.'),B('Hâlâ "Otomatik Onarım" diyor, açılmıyor!','It still says "Automatic Repair" and won\'t start!'));
+    if(sw.virus)add('virus',B('Sistemde zararlı yazılım var.','There\'s malware on the system.'),B('Reklamlar hâlâ açılıyor!','The pop-ups are still there!'));
+    if(sw.driver)add('driver',B('Sürücüler eksik.','Drivers are missing.'),B('Hâlâ ses yok!','Still no sound!'));
+    if(sw.bloat)add('bloat',B('Başlangıçta çok fazla program açılıyor.','Too many programs run at startup.'),B('Açılış hâlâ çok yavaş.','Startup is still really slow.'));
+  }
+  if(l.wantRam&&st.ram.filter(r=>r&&r.seated&&r.ok).length<2)add('noup',B('Müşteri RAM yükseltmesi istiyordu; boş yuva hâlâ boş.','The customer wanted a RAM upgrade; the empty slot is still empty.'),B('RAM eklemediniz mi? Hâlâ aynı!','Didn\'t you add RAM? It\'s the same!'));
+  return P;
+}
+
+/* ---------- power & boot ---------- */
+function later(ms,fn){const tok=RT.tok;const id=S.benchId;setTimeout(()=>{if(tok===RT.tok&&S&&S.benchId===id&&L()&&L().st.powered){fn();render();}},ms);}
+function hardOff(msg){const l=L();if(!l)return;l.st.powered=false;l.st.screen='off';l.st.app=null;RT.tok++;fanSound(false);if(msg)note(msg,'w');}
+function powerOn(){
+  const l=L(),st=l.st,M=MODELS[l.model];spend(1);sfx('click');
+  const src=powerSrc(l);
+  if(!src||st.dead){
+    let m=B('Güç düğmesine bastın: hiçbir ışık yanmadı, fan dönmedi.','You pressed power: no lights, no fan.');
+    if(st.plug==='cust'&&!l.charger.ok)m=B(m.tr+' Adaptör takılıyken bile şarj ışığı sönük.',m.en+' Even with the charger in, the charge light stays off.');
+    else if(!st.plug&&st.bat&&st.batConn&&st.bat.charge<=3)m=B(m.tr+' Batarya tamamen boş görünüyor.',m.en+' The battery seems completely empty.');
+    if(!st.plug&&!st.batConn)m=B(m.tr+' Batarya bağlı değil ve adaptör takılı değil.',m.en+' The battery is disconnected and no charger is plugged in.');
+    note(m);return;
+  }
+  if(src==='flaky'){note(B('Güç ışığı bir yandı bir söndü; fişi oynatınca güç gelip gidiyor.','The power light blinked on and off; power comes and goes when the plug moves.'),'w');found('dcjack');sfx('err');return;}
+  st.powered=true;st.screen='post';st.app=null;RT.tok++;fanSound(true);
+  later(1000,()=>{
+    if(!st.hs){hardOff(B('Birkaç saniye içinde kapandı! Soğutucu takılı değilken işlemci anında 100°C\'ye çıkar.','It cut out within seconds! Without the heatsink the CPU hits 100°C instantly.'));sfx('err');return;}
+    const sticks=st.ram.filter(r=>r&&r.seated);
+    if(!sticks.length){st.screen='beep';beeps(3);note(B('Fan döndü, güç ışığı yandı ama ekran siyah. 3 uzun bip: bellek (RAM) bulunamadı.','Fan spins, power light on, but the screen stays black. 3 long beeps: no memory (RAM) detected.'),'w');found('ram_loose');return;}
+    if(st.cmosV<2.5){st.screen='cmos';note(B('Ekranda "CMOS Checksum Error" ve tarih 01.01.2009, F1 ile devam istiyor.','The screen shows "CMOS Checksum Error", date 01/01/2009, press F1 to continue.'),'w');found('cmos');return;}
+    contBoot();
+  });
+}
+function contBoot(){
+  const l=L(),st=l.st,M=MODELS[l.model];const sw=st.sw||{};st.screen='logo';bootJingle(M.boot);
+  later(1500,()=>{
+    const d=bootDrive(l);
+    if(!d){st.screen='noboot';note(B('"No bootable device": Windows yüklü çalışan bir disk bulunamadı.','"No bootable device": no working drive with Windows found.'),'w');if([st.m2,st.bay].some(x=>x&&!x.ok))found('ssd_dead');return;}
+    if(d.smart){st.screen='loading';note(B('Windows çok yavaş açıldı (yaklaşık 4 dakika). Diskten tık tık sesi geliyor.','Windows took about 4 minutes to load. The drive is clicking.'),'w');found('hdd_slow');spend(4);later(2600,()=>{st.screen='win';winChime();});return;}
+    if(sw.corrupt){st.screen='autorepair';note(B('"Otomatik Onarım hazırlanıyor", sonra "Bilgisayarınız düzgün başlatılamadı". Yeniden başlatınca hep aynı döngü.','"Preparing Automatic Repair", then "Your PC did not start correctly". Restarting repeats the loop.'),'w');found('bootloop');return;}
+    st.screen='load2';if(sw.bloat){spend(3);note(B('Windows açıldı ama masaüstü 3 dakika donuk kaldı, sağ altta onlarca simge belirdi.','Windows loaded, but the desktop froze for 3 minutes while dozens of tray icons appeared.'),'w');}
+    later(sw.bloat?1800:800,()=>{st.screen='win';if(!sw.driver)winChime();
+      if(sw.virus){note(B('Masaüstü açılır açılmaz reklam pencereleri fırladı. Tarayıcı ana sayfası değişmiş.','Ad windows popped up as soon as the desktop appeared. The browser homepage was hijacked.'),'w');found('virus');}
+      if(sw.driver)note(B('Windows açıldı ama açılış sesi gelmedi, ekran çözünürlüğü de düşük.','Windows loaded, but there was no startup sound and the resolution is low.'),'w');
+      if(ramBad(l)&&Math.random()<.35)bsod();});
+  });
+}
+function bsod(){const l=L();l.st.screen='bsod';l.st.app=null;note(B('Mavi ekran: MEMORY_MANAGEMENT. Bellek hatası şüphesi.','Blue screen: MEMORY_MANAGEMENT. Suspect memory.'),'w');found('ram_bad');sfx('err');}
+function unplugWhileOn(){const l=L();if(l.st.powered&&!powerSrc(l)){hardOff(B('Adaptörü çekince bilgisayar anında kapandı: batarya yükü taşıyamıyor.','It died the instant you pulled the charger: the battery can\'t carry the load.'));if(l.st.bat&&l.st.bat.health<45)found('bat_worn');}}
+
+/* =================== component actions =================== */
+function unsafeReasons(l){const st=l.st,r=[];if(st.powered)r.push(t('bilgisayar açık','the laptop is on'));if(st.plug)r.push(t('adaptör takılı','a charger is plugged in'));if(st.batConn&&st.bat)r.push(t('batarya bağlı','the battery is connected'));return r;}
+function compInfo(c){
+  const l=L(),st=l.st,M=MODELS[l.model];const A=[];let ti='',d='';
+  const a=(id,label,min,opt)=>A.push(Object.assign({id,label,min},opt||{}));
+  switch(c){
+    case 'batcon':ti=t('Batarya konnektörü','Battery connector');d=st.batConn?t('Batarya anakarta bağlı.','The battery is connected to the board.'):t('Batarya ayrılmış. Anakartta güç yok.','Battery disconnected. No power on the board.');
+      if(st.bat){if(st.batConn)a('unplug',t('Konnektörü ayır','Disconnect'),1,{sub:t('İç parçalara dokunmadan önce ilk iş','First thing before touching anything inside')});else a('plug',t('Konnektörü tak','Reconnect'),1);}break;
+    case 'bat':ti=t('Batarya','Battery');
+      if(!st.bat){d=t('Batarya yuvası boş.','The battery bay is empty.');a('install',t('Batarya tak','Fit a battery'),4,{safe:1});break;}
+      d=PN(st.bat.pid)+'. '+(st.bat.swollen?t('Gövdesi belirgin şekilde kabarmış!','The pack is visibly bulging!'):t('Dışarıdan normal görünüyor.','Looks normal from outside.'));
+      a('inspect',t('İncele','Inspect'),1);a('measure',t('Multimetreyle voltaj ölç','Measure voltage'),2,{tool:'multi',sub:t('Konnektör ayrıyken pin uçlarından','At the pins, with the connector unplugged')});
+      a('remove',t('Bataryayı sök (2 vida)','Remove battery (2 screws)'),4,{safe:1,sub:st.bat.swollen?t('Bükmeden, delmeden!','Don\'t bend or puncture it!'):''});break;
+    case 'fan':ti=t('Fan','Fan');d=!st.fan.ok?t('Pervane elle çevrilince takılıyor.','The impeller catches when turned by hand.'):st.fan.dust>.6?t('Kanatlar ve ızgara kalın bir toz tabakasıyla kaplı.','Blades and fins are caked in dust.'):st.fan.dust>.35?t('Biraz toz birikmiş.','Some dust has built up.'):t('Temiz.','Clean.');
+      a('inspect',t('İncele','Inspect'),1);a('brush',t('Fırçayla temizle','Clean with brush'),10,{tool:'brush',sub:t('Tozu kabaca alır','Gets the worst of it')});
+      a('air',t('Hava üfleyiciyle temizle','Clean with air duster'),5,{tool:'air',sub:t('Fanı parmağınla tutarak üfle','Hold the fan still while you blow')});
+      a('replace',t('Fanı değiştir','Replace fan'),15,{safe:1,part:'fan_'+l.model});break;
+    case 'hs':ti=st.hs?t('Soğutucu (ısı borusu)','Heatsink (heat pipe)'):t('İşlemci','CPU');
+      if(st.hs){d=t('Bakır ısı borusu işlemcinin üstünden fana gidiyor. 4 vida, numaralı sırayla sökülür.','A copper heat pipe runs from the CPU to the fan. 4 screws, removed in numbered order.');a('inspect',t('İncele','Inspect'),1);a('removeHs',t('Soğutucuyu sök','Remove heatsink'),8,{safe:1,sub:t('Vidaları 4-3-2-1 sırasıyla gevşet','Loosen screws 4-3-2-1')});}
+      else{d=st.paste==='dry'?t('Macun kurumuş, çatlamış ve ufalanıyor.','The paste is dry, cracked and crumbling.'):st.paste==='none'?t('İşlemci yüzeyi temiz ve parlak. Macun yok.','The CPU is clean and shiny. No paste.'):t('Taze macun sürülmüş.','Fresh paste applied.');
+        a('inspect',t('İncele','Inspect'),1);
+        a('clean',t('Eski macunu izopropille temizle','Clean old paste with isopropyl'),5,{tool:'ipa',dis:st.paste==='none'?t('Zaten temiz','Already clean'):null});
+        a('paste',t('Termal macun sür','Apply thermal paste'),3,{dis:st.paste==='dry'?t('Önce eski macunu temizle','Clean off the old paste first'):st.paste==='good'?t('Macun zaten sürülü','Paste already applied'):(stock('paste')<1?t('Stokta macun yok','No paste in stock'):null),sub:t('Pirinç tanesi kadar, ortaya','A pea-sized dot in the middle')});
+        a('mountHs',t('Soğutucuyu geri tak','Refit heatsink'),6,{safe:1,sub:st.paste!=='good'?t('Dikkat: macunsuz takarsan aşırı ısınır','Careful: without paste it will overheat'):t('Vidaları 1-2-3-4 sırasıyla sık','Tighten screws 1-2-3-4')});}
+      break;
+    case 'cmos':ti=t('CMOS pili (CR2032)','CMOS battery (CR2032)');d=t('Saati ve BIOS ayarlarını tutan düğme pil.','The coin cell that keeps the clock and BIOS settings.');a('inspect',t('İncele','Inspect'),1);a('measure',t('Multimetreyle ölç','Measure'),2,{tool:'multi'});a('replace',t('Pili değiştir','Replace cell'),4,{safe:1,part:'cmos'});break;
+    case 'wifi':ti=t('Wi-Fi kartı','Wi-Fi card');d=st.ant?t('İki anten kablosu (siyah ve beyaz) takılı.','Both antenna cables (black and white) are connected.'):t('Anten kabloları konnektörlerden çıkmış, boşta duruyor!','The antenna cables are off their connectors, hanging loose!');
+      a('inspect',t('İncele','Inspect'),1);if(!st.ant)a('ant',t('Anten kablolarını tak','Connect antenna cables'),5,{safe:1,sub:t('Siyah: MAIN, beyaz: AUX','Black: MAIN, white: AUX')});break;
+    case 'dc':ti=M.usbc?t('USB-C şarj portu','USB-C charging port'):t('DC şarj girişi','DC charging jack');d=M.dc==='cable'?t('Kabloyla anakarta bağlı, braketle sabit.','Cabled to the board, held by a bracket.'):t('Anakarta lehimli.','Soldered to the board.');
+      a('inspect',t('İncele','Inspect'),1);a('measure',t('Girişte voltaj ölç','Measure at the port'),2,{tool:'multi',dis:st.plug?null:t('Önce adaptörü tak (ön görünüm)','Plug in a charger first (front view)')});
+      a('replace',t('Şarj girişini değiştir','Replace charging port'),M.dc==='cable'?20:35,{safe:1,part:'dc_'+l.model,tool:M.dc==='solder'?'solder':null});break;
+    case 'mb':ti=t('Anakart','Motherboard');d=st.dead?t('Kartta yanık izi var, şarj girişinden sonra kısa devre ölçülüyor. Onarılamaz, değişmeli.','There\'s a burn mark and a short right after the charging input. Not repairable; it needs replacing.'):t('Anakart sağlam görünüyor.','The motherboard looks fine.');
+      a('inspect',t('İncele','Inspect'),1);a('replaceMb',t('Anakartı değiştir','Replace motherboard'),60,{safe:1,part:'mb_'+l.model,sub:t('RAM, disk, fan ve batarya yeni karta taşınır','RAM, drive, fan and battery move over to the new board')});break;
+    case 'kbc':ti=t('Klavye konnektörü','Keyboard connector');d=st.corr?t('Konnektör çevresinde yeşil-beyaz tuzlanma var.','Green-white crust around the connector.'):t('Şerit kablo konnektöre oturmuş.','The ribbon is seated.');a('inspect',t('İncele','Inspect'),1);a('replaceKb',t('Klavyeyi değiştir','Replace keyboard'),40,{safe:1,part:'kb_'+l.model});break;
+    case 'corr':ti=t('Oksitlenme','Corrosion');d=t('Sıvı teması sonucu oluşmuş korozyon.','Corrosion from a liquid spill.');a('inspect',t('İncele','Inspect'),1);a('cleanCorr',t('İzopropil ve fırçayla temizle','Clean with isopropyl and brush'),has('ultra')?8:20,{safe:1,tool:'ipa'});break;
+    case 'm2':case 'bay':{const dv=st[c];ti=c==='m2'?t('M.2 disk yuvası (NVMe)','M.2 slot (NVMe)'):t('2.5" disk yuvası','2.5" drive bay');
+      if(!dv){d=t('Yuva boş.','Empty slot.');a('install',t('Disk tak','Fit a drive'),4,{safe:1});}
+      else{d=PN(dv.pid)+(dv.os?t(', Windows kurulu.',', Windows installed.'):t(', boş.',', blank.'));a('inspect',t('İncele','Inspect'),1);a('remove',t('Diski çıkar','Remove drive'),3,{safe:1});
+        if(has('clone')&&!dv.os&&l.tray.some(x=>PARTS[x.pid].cat==='disk'&&x.os&&x.ok))a('clone',t('Eski diskten klonla','Clone from old drive'),30,{sub:t('Dosyalar ve Windows taşınır (+$8)','Files and Windows are copied (+$8)')});}
+      break;}
+    default:if(c.startsWith('ram')){const i=+c.slice(3),r=st.ram[i];ti=t('RAM yuvası ','RAM slot ')+(i+1)+' ('+M.ram.toUpperCase()+')';
+      if(!r){d=t('Yuva boş.','Empty slot.');a('install',t('RAM tak','Fit RAM'),2,{safe:1});}
+      else{d=PN(r.pid)+'. '+(r.seated?t('Yerine oturmuş, mandallar kilitli.','Seated, latches locked.'):t('Modül yamuk, mandallara tam oturmamış!','Tilted, not latched in!'));
+        a('inspect',t('İncele','Inspect'),1);if(!r.seated)a('reseat',t('Yerine oturt','Reseat'),2,{safe:1});a('remove',t('Çıkar','Remove'),2,{safe:1});}}
+  }
+  for(const x of A){
+    if(!x.dis&&x.tool&&!has(x.tool))x.dis=t('Gerekli alet: ','Tool needed: ')+X(TOOLS[x.tool].n);
+    if(!x.dis&&x.part&&!stock(x.part))x.dis=t('Stokta yok: ','Out of stock: ')+PN(x.part);
+  }
+  return {t:ti,d,A};
+}
+function billPart(l,pid){l.billed.push({n:PARTS[pid].n,p:sp(pid)});}
+function doAct(c,a,force){
+  const l=L(),st=l.st,M=MODELS[l.model];
+  const info=compInfo(c);const x=info.A.find(z=>z.id===a);if(!x||x.dis)return;
+  if(!canWork())return;
+  if(x.safe&&!force){const r=unsafeReasons(l);if(r.length){openModal({k:'risk',c,a,r});return;}}
+  closeSheet();
+  if(force){
+    if(Math.random()<.35){st.dead=true;sfx('zap');note(B('Bir kıvılcım! Anakartta kısa devre oldu. Bilgisayar artık açılmıyor; anakart değişimi gerekecek.','A spark! The board shorted. It won\'t power on any more; it needs a new motherboard.'),'w');repAdd(-.2);hardOff();render();return;}
+    note(B('Şanslıydın, bir şey olmadı. Ama bunu alışkanlık yapma.','You got lucky this time. Don\'t make it a habit.'),'w');
+  }
+  if(a==='install'){openPicker(c);return;}
+  spend(a==='inspect'&&has('lamp')?0:x.min*(has('bench2')?.8:1));
+  const strapRisk=()=>!has('strap')&&Math.random()<.02;
+  const N=(tr,en)=>note(B(tr,en));
+  const comp=c+':'+a;
+  switch(comp){
+    case 'batcon:unplug':st.batConn=false;sfx('snap');N('Batarya konnektörünü ayırdın. Anakartta güç yok.','Battery disconnected. No power on the board.');break;
+    case 'batcon:plug':st.batConn=true;sfx('snap');N('Batarya konnektörünü taktın.','Battery reconnected.');break;
+    case 'bat:inspect':if(st.bat.swollen){N('Batarya şişmiş! Touchpad\'i yukarı itiyor. Delinirse yanabilir.','The battery is swollen and pushing the touchpad up. It could catch fire if punctured.');found('bat_swollen');}else N('Batarya gövdesi düz.','The battery pack is flat.');break;
+    case 'bat:measure':{if(st.batConn){N('Ölçmek için önce batarya konnektörünü ayır.','Disconnect the battery first to measure it.');break;}const v=st.bat.charge<=3?R(8.6,9.4):R(11.2,12.5);N('Batarya voltajı: '+v.toFixed(2).replace('.',',')+' V'+(v<10?' (derin deşarj)':' (normal 10,8-12,6 V)'),'Battery voltage: '+v.toFixed(2)+' V'+(v<10?' (deeply discharged)':' (normal 10.8-12.6 V)'));break;}
+    case 'bat:remove':l.tray.push(st.bat);st.bat=null;sfx('screw');N('Bataryayı söktün, tepsiye koydun.','Battery removed and placed in the tray.');break;
+    case 'fan:inspect':note(B(info.d,info.d));if(st.fan.dust>.6)found('overheat');break;
+    case 'fan:brush':st.fan.dust=Math.max(0,st.fan.dust-.6);sfx('brush');N('Fanı ve ızgarayı fırçaladın.','You brushed the fan and fins.');break;
+    case 'fan:air':st.fan.dust=0;sfx('air');N('Fanı tutarak hava üfleyiciyle temizledin. Tertemiz.','Blown clean with the duster while holding the fan.');break;
+    case 'fan:replace':S.stock['fan_'+l.model]--;billPart(l,'fan_'+l.model);st.fan={ok:true,dust:0};sfx('screw');N('Fanı yenisiyle değiştirdin.','Fan replaced.');break;
+    case 'hs:inspect':note(B(info.d,info.d));if(!st.hs&&st.paste==='dry')found('overheat');break;
+    case 'hs:removeHs':st.hs=false;sfx('screw');N('Soğutucuyu söktün.'+(st.paste==='dry'?' Macun kurumuş ve çatlamış!':''),'Heatsink removed.'+(st.paste==='dry'?' The paste is dry and cracked!':''));if(st.paste==='dry')found('overheat');break;
+    case 'hs:clean':st.paste='none';N('Eski macunu izopropil ve tiftiksiz bezle temizledin.','Old paste wiped off with isopropyl and a lint-free cloth.');break;
+    case 'hs:paste':S.stock.paste--;l.billed.push({n:B('Termal macun uygulaması','Thermal paste application'),p:sp('paste')});st.paste='good';N('Ortaya pirinç tanesi kadar macun sürdün.','You applied a pea-sized dot of paste.');break;
+    case 'hs:mountHs':st.hs=true;sfx('screw');N('Soğutucuyu çapraz sırayla sıktın.'+(st.paste!=='good'?' Ama macun yok!':''),'Heatsink tightened in cross order.'+(st.paste!=='good'?' But there\'s no paste!':''));break;
+    case 'cmos:inspect':note(B(info.d,info.d));break;
+    case 'cmos:measure':N('CMOS pili: '+st.cmosV.toFixed(2).replace('.',',')+' V'+(st.cmosV<2.5?' (bitik! 3 V olmalı)':' (sağlam)'),'CMOS cell: '+st.cmosV.toFixed(2)+' V'+(st.cmosV<2.5?' (flat! should be 3 V)':' (fine)'));if(st.cmosV<2.5)found('cmos');break;
+    case 'cmos:replace':S.stock.cmos--;billPart(l,'cmos');st.cmosV=3.1;N('CMOS pilini yeni CR2032 ile değiştirdin.','Fitted a new CR2032 cell.');break;
+    case 'wifi:inspect':note(B(info.d,info.d));if(!st.ant)found('wifi');break;
+    case 'wifi:ant':st.ant=true;sfx('snap');N('Anten kablolarını "çıt" sesiyle taktın.','Antenna cables snapped back on.');break;
+    case 'dc:inspect':N(info.d+(st.dc?'':' Fişi oynatınca giriş yerinde boşluk var.'),info.d+(st.dc?'':' The port wobbles when the plug moves.'));break;
+    case 'dc:measure':{const p=plugState(l);N('Şarj girişinde: '+(st.dc?(p?'19,4 V sabit':'0 V (adaptör güç vermiyor)'):'kararsız, 0-19 V arası atlıyor')+'.','At the port: '+(st.dc?(p?'steady 19.4 V':'0 V (the charger gives nothing)'):'unstable, jumping between 0 and 19 V')+'.');if(!st.dc)found('dcjack');if(st.dc&&!p&&st.plug==='cust')found('charger');break;}
+    case 'dc:replace':S.stock['dc_'+l.model]--;billPart(l,'dc_'+l.model);st.dc=true;if(M.dc==='solder')ach('solder');N(M.dc==='cable'?'Kablolu şarj girişini değiştirdin.':'Eski girişi sıcak havayla söküp yenisini lehimledin.',M.dc==='cable'?'Cabled charging port replaced.':'You removed the old port with hot air and soldered in a new one.');break;
+    case 'mb:inspect':note(B(info.d,info.d));if(st.dead)found('mb_dead');break;
+    case 'mb:replaceMb':S.stock['mb_'+l.model]--;billPart(l,'mb_'+l.model);st.dead=false;st.corr=false;st.cmosV=3.1;if(M.dc==='solder')st.dc=true;sfx('screw');N('Bütün parçaları söküp yeni anakarta taşıdın ve kartı yerine vidaladın.','You moved every part over to the new motherboard and screwed it in.');break;
+    case 'kbc:inspect':note(B(info.d,info.d));if(st.corr)found('liquid');break;
+    case 'kbc:replaceKb':S.stock['kb_'+l.model]--;billPart(l,'kb_'+l.model);st.kb=true;N('Klavyeyi değiştirdin.','Keyboard replaced.');break;
+    case 'corr:inspect':note(B(info.d,info.d));found('liquid');break;
+    case 'corr:cleanCorr':st.corr=false;sfx('brush');N('Oksitlenmeyi izopropil ve fırçayla temizledin.','Corrosion cleaned off with isopropyl and a brush.');break;
+    default:
+      if(c==='m2'||c==='bay'){const dv=st[c];
+        if(a==='inspect')note(B(info.d,info.d));
+        else if(a==='remove'){l.tray.push(dv);st[c]=null;N('Diski çıkardın.','Drive removed.');}
+        else if(a==='clone'){dv.os=true;l.cloned=true;l.billed.push({n:B('Disk klonlama (dosyalar korundu)','Drive clone (files kept)'),p:8});sfx('ok');N('Eski diski yeni diske klonladın. Windows ve dosyalar taşındı.','Cloned the old drive to the new one. Windows and files moved over.');}
+      }else if(c.startsWith('ram')){const i=+c.slice(3),r=st.ram[i];
+        if(a==='inspect'){note(B(info.d,info.d));if(!r.seated)found('ram_loose');}
+        else if(a==='reseat'){r.seated=true;sfx('snap');N('RAM\'i mandallar "klik" edene kadar bastırdın.','You pressed the RAM down until the latches clicked.');if(strapRisk())r.ok=false;}
+        else if(a==='remove'){l.tray.push(r);st.ram[i]=null;sfx('snap');N('RAM yuva '+(i+1)+'\'den çıkarıldı.','RAM removed from slot '+(i+1)+'.');if(strapRisk())r.ok=false;}
+      }
+  }
+  render();
+}
+
+/* ---------- install picker ---------- */
+function fits(slot,pid){const l=L(),M=MODELS[l.model],P=PARTS[pid];
+  if(slot.startsWith('ram'))return P.cat==='ram'?(P.ram===M.ram?true:t('Uyumsuz: '+P.ram.toUpperCase()+' modül '+M.ram.toUpperCase()+' yuvaya girmez','Won\'t fit: '+P.ram.toUpperCase()+' in a '+M.ram.toUpperCase()+' slot')):false;
+  if(slot==='m2')return P.cat==='disk'?(P.form==='nvme'?true:t('Uyumsuz: bu yuva M.2 NVMe ister','Won\'t fit: this slot takes M.2 NVMe')):false;
+  if(slot==='bay')return P.cat==='disk'?(P.form==='bay'?true:t('Uyumsuz: 2.5" yuvaya M.2 disk girmez','Won\'t fit: an M.2 drive can\'t go in a 2.5" bay')):false;
+  if(slot==='bat')return P.cat==='batarya'?(P.model===l.model?true:t('Uyumsuz: başka modelin bataryası','Won\'t fit: battery for another model')):false;
+  return false;}
+function openPicker(slot){
+  const l=L();const opts=[];
+  l.tray.forEach((it,i)=>{const f=fits(slot,it.pid);if(f!==false)opts.push({src:'tray',i,n:PN(it.pid),sub:t('Tepsiden','From the tray')+' ('+(it.owner==='shop'?t('senin stoğun','your stock'):t('müşterinin eski parçası','the customer\'s old part'))+')',dis:f===true?null:f});});
+  for(const p in S.stock){if(!S.stock[p]||!PARTS[p])continue;const f=fits(slot,p);if(f!==false)opts.push({src:'stock',p,n:PN(p),sub:t('Stoktan · ','From stock · ')+S.stock[p]+t(' adet · müşteriye ',' left · customer pays ')+usd(sp(p)),dis:f===true?null:f});}
+  ui.sheet={k:'pick',slot,opts};render();
+}
+function installItem(slot,src,ref){
+  const l=L(),st=l.st;let it;
+  if(src==='tray')it=l.tray.splice(+ref,1)[0];
+  else{S.stock[ref]--;const P=PARTS[ref];it={pid:ref,ok:true,owner:'shop',seated:true,os:false};if(P.cat==='batarya'){it.health=100;it.charge=55;it.swollen=false;}}
+  if(slot.startsWith('ram')){it.seated=true;st.ram[+slot.slice(3)]=it;spend(2);sfx('snap');note(B(PARTS[it.pid].n.tr+' takıldı.',PARTS[it.pid].n.en+' fitted.'));if(!has('strap')&&Math.random()<.02)it.ok=false;}
+  else if(slot==='bat'){st.bat=it;st.batConn=false;spend(4);sfx('screw');note(B('Batarya takıldı. Konnektörü bağlamayı unutma.','Battery fitted. Don\'t forget to connect it.'));}
+  else{st[slot]=it;spend(4);sfx('screw');note(B(PARTS[it.pid].n.tr+' takıldı.'+(it.os?'':' Disk boş; Windows kurmak gerekecek.'),PARTS[it.pid].n.en+' fitted.'+(it.os?'':' The drive is blank; Windows will need installing.')));}
+  closeSheet();render();
+}
+
+/* =================== screen apps =================== */
+function appOpen(k){
+  const l=L(),st=l.st;if(!st.powered||st.screen!=='win')return;
+  if(ramBad(l)&&k!=='stress'&&Math.random()<.3){spend(2);bsod();render();return;}
+  st.app=k;if(k!=='stress')spend(2);
+  if(k==='battery'){const b=st.bat;if(!b||!st.batConn)note(B('Pil raporu: batarya algılanmadı.','Battery report: no battery detected.'));else{note(B('Pil raporu: tasarım 45.000 mWh, tam şarj '+Math.round(450*b.health).toLocaleString('tr-TR')+' mWh, sağlık %'+Math.round(b.health)+(b.health<60?' (değiştirilmeli)':''),'Battery report: design 45,000 mWh, full charge '+Math.round(450*b.health).toLocaleString('en-US')+' mWh, health '+Math.round(b.health)+'%'+(b.health<60?' (replace)':'')));if(b.health<60)found(b.swollen?'bat_swollen':'bat_worn');}}
+  if(k==='taskmgr'){const d=bootDrive(l);const hd=d&&d.smart;note(B('Görev Yöneticisi: disk '+(hd?'%100 (sürekli)':'%3')+', RAM '+ramTotal(l)+' GB.'+(hd&&has('diag')?' SMART: 412 yeniden atanmış sektör, DİKKAT.':''),'Task Manager: disk '+(hd?'100% (constantly)':'3%')+', RAM '+ramTotal(l)+' GB.'+(hd&&has('diag')?' SMART: 412 reallocated sectors, CAUTION.':'')));if(hd)found('hdd_slow');}
+  if(k==='taskmgr'&&(st.sw||{}).bloat){note(B('Başlangıçta 38 program açılıyor, çoğu gereksiz.','38 programs launch at startup, most of them unnecessary.'));found('bloat');}
+  if(k==='devmgr'&&(st.sw||{}).driver){note(B('Aygıt Yöneticisi: ses ve ekran sürücüleri eksik (sarı ünlem).','Device Manager: audio and display drivers are missing (yellow warnings).'));found('driver');}
+  if(k==='wifi'){note(st.ant?B('Wi-Fi: 6 ağ görünüyor, sinyal güçlü.','Wi-Fi: 6 networks, strong signal.'):B('Wi-Fi: hiçbir ağ görünmüyor.','Wi-Fi: no networks found.'));if(!st.ant)found('wifi');}
+  if(k==='kbd'){note(st.kb?B('Klavye testi: tüm tuşlar çalışıyor.','Keyboard test: every key works.'):B('Klavye testi: 14 tuş tepki vermiyor.','Keyboard test: 14 keys are dead.'));if(!st.kb)found('liquid');}
+  if(k==='stress')runStress();
+  render();
+}
+function ramTotal(l){return l.st.ram.filter(r=>r&&r.seated).reduce((s,r)=>s+(r.pid.includes('16')?16:r.pid==='ram_d3_4'?4:8),0);}
+function runStress(){
+  const l=L(),st=l.st;spend(10);
+  const T=stressTemp(l);const tok=RT.tok;const t0=performance.now();const dur=3200;const top=Math.min(T,99);const bad=ramBad(l);
+  const step=()=>{if(tok!==RT.tok)return;const p=Math.min(1,(performance.now()-t0)/dur);const v=Math.round(48+(top-48)*(1-Math.pow(1-p,2)));
+    const el=$('#stressVal');if(el){el.textContent=v+'°C';el.style.color=v>=95?'#c62828':v>=85?'#b26a00':'#1e7a46';}
+    const bar=$('#stressBar');if(bar)bar.style.width=Math.min(100,v)+'%';
+    if(bad&&p>.45){bsod();render();return;}
+    if(p<1)requestAnimationFrame(step);
+    else{
+      if(T>=97){hardOff(B('Stres testinde sıcaklık '+top+'°C\'ye çıktı ve bilgisayar aniden kapandı (termal kapanma).','Under stress the temperature reached '+top+'°C and the laptop cut out (thermal shutdown).'));found(st.fan.ok?'overheat':'fan_dead');sfx('err');}
+      else{l.lastStress=T;note(B('Stres testi tamam: en yüksek '+T+'°C, kapanma yok.'+(T>88?' Yine de yüksek.':' Gayet iyi.'),'Stress test done: peak '+T+'°C, no shutdown.'+(T>88?' Still high.':' Looks good.')));if(!st.fan.ok)found('fan_dead');}
+      render();}
+  };requestAnimationFrame(step);
+}
+
+/* =================== jobs =================== */
+function acceptJob(){
+  const c=S.queue[0];if(!c||c.retail)return;
+  if(S.jobs.length>=shelfCap()){toast(B('Raf dolu! Önce bir işi teslim et ya da raf genişlet.','The shelf is full! Deliver a job or buy another shelf.'));return;}
+  S.queue.shift();
+  const j={id:c.id,cust:{name:c.name,role:c.role,hair:c.hair,shirt:c.shirt},say:c.say,faults:c.faults,l:c.l,due:S.day+2,tut:!!c.tut};
+  j.l.log.push({t:B('Müşteri şikâyeti: "'+c.say.tr+'"','Customer complaint: "'+c.say.en+'"'),time:hhmm(S.time),k:'c'});
+  S.jobs.push(j);if(!S.benchId)S.benchId=j.id;
+  spend(3);toast(B(j.cust.name+' laptopunu bıraktı.',j.cust.name+' left the laptop with you.'));render();
+}
+function declineJob(){const c=S.queue.shift();if(c){toast(B(c.name+' başka dükkana gitti.',c.name+' went to another shop.'));spend(2);}render();}
+function toBench(id){const cj=cur();if(cj&&cj.l.st.powered){toast(B('Masadaki laptopu önce kapat.','Turn off the laptop on the bench first.'));return;}if(cj)cj.l.st.plug=null;S.benchId=id;ui.view='bench';spend(1);render();}
+function toShelf(){const j=cur();if(!j)return;if(j.l.st.powered){toast(B('Önce bilgisayarı kapat.','Turn it off first.'));return;}j.l.st.plug=null;S.benchId=null;render();}
+function sugLabor(j){return j.faults.reduce((s,f)=>s+FAULTS[f].labor(j.l),0);}
+function callCust(id){
+  const j=job(id);if(!j)return;if(j.l.st.powered){toast(B('Teslimden önce bilgisayarı kapat.','Turn the laptop off before handing it back.'));return;}
+  if(!canWork())return;spend(15);
+  const P=problems(j.l);
+  if(P.length){repAdd(-.15);sfx('err');openModal({k:'complain',id,p:P[0]});return;}
+  sfx('door');openModal({k:'invoice',id,labor:sugLabor(j)});
+}
+function invoiceLines(j){
+  const st=j.l.st,lines=[];
+  [...st.ram,st.m2,st.bay,st.bat].filter(x=>x&&x.owner==='shop').forEach(x=>lines.push({n:PARTS[x.pid].n,p:sp(x.pid)}));
+  j.l.billed.forEach(b=>lines.push(b));return lines;
+}
+function printInvoice(id,labor){
+  const j=job(id);const lines=invoiceLines(j);const parts=lines.reduce((s,x)=>s+x.p,0);
+  S.invNo++;sfx('print');
+  ui.modal={k:'receipt',inv:{no:S.invNo,id,kind:'job',name:j.cust.name,model:MODELS[j.l.model].name,lines,labor,total:parts+labor,day:S.day,time:hhmm(S.time)}};render();
+}
+function sellRetail(){
+  const c=S.queue[0];if(!c||!c.retail||!stock(c.want))return;
+  S.invNo++;sfx('print');
+  ui.modal={k:'receipt',inv:{no:S.invNo,kind:'retail',name:c.name,lines:[{n:PARTS[c.want].n,p:sp(c.want)}],labor:0,total:sp(c.want),day:S.day,time:hhmm(S.time),pid:c.want}};render();
+}
+function takePayment(){
+  const inv=ui.modal.inv;if(inv.paid)return;inv.paid=true;
+  const reg=document.querySelector('.regBig .register');if(reg)reg.classList.add('open');
+  const st=document.querySelector('.paper .stamp');if(st)st.classList.add('on');
+  sfx('drawer');setTimeout(()=>sfx('cash'),180);
+  setTimeout(()=>finishSale(inv),950);
+}
+function finishSale(inv){
+  if(inv.kind==='retail'){
+    S.queue.shift();S.stock[inv.pid]--;S.stats.sold++;earn(inv.total,B('Satış: '+PARTS[inv.pid].n.tr,'Sale: '+PARTS[inv.pid].n.en));repAdd(.02);spend(3);ach('retail');
+    ui.modal={k:'msg',title:B('Satış tamam','Sale complete'),body:B(inv.name+' teşekkür edip çıktı. Kasaya '+usd(inv.total)+' girdi.',inv.name+' thanked you and left. '+usd(inv.total)+' in the till.')};render();return;
+  }
+  const j=job(inv.id);const parts=inv.total-inv.labor;
+  const fair=sugLabor(j)+parts;const tol=has('light')?1.12:1;const ratio=inv.total/(fair*tol);
+  let msg,dr,stars;
+  if(ratio<=.9){dr=.25;stars=5;msg=B('Çok memnun kaldı, çevresine seni anlatacak.','Delighted. They\'ll tell everyone about you.');}
+  else if(ratio<=1.1){dr=.15;stars=5;msg=B('Memnun kaldı, teşekkür etti.','Happy and grateful.');}
+  else if(ratio<=1.3){dr=.03;stars=4;msg=B('Biraz pahalı buldu ama ödedi.','Found it a bit pricey but paid.');}
+  else if(ratio<=1.6){dr=-.12;stars=2;msg=B('Pahalı buldu, söylene söylene ödedi.','Thought it was expensive and grumbled while paying.');}
+  else{dr=-.3;stars=1;msg=B('Kazıklandığını düşünüyor. Yorumlara yazacakmış.','Feels ripped off and is going to post a review.');}
+  if(ratio<=1.1){S.stats.fair++;if(S.stats.fair>=5)ach('honest');}
+  if(j.l.st.clip){dr-=.08;stars=Math.max(1,stars-1);msg=B(msg.tr+' Kapaktaki kırık klipsi fark etti.',msg.en+' They noticed the broken clip on the cover.');}
+  if(j.l.wiped){dr-=.2;stars=Math.max(1,stars-2);msg=B(msg.tr+' Bütün dosyaları silinmiş, çok üzüldü!',msg.en+' All their files were wiped and they\'re upset!');}
+  if(has('coffee'))dr+=.02;
+  if(S.day>j.due){dr-=.1;stars=Math.max(1,stars-1);msg=B(msg.tr+' Geç teslime söylendi.',msg.en+' They complained about the delay.');}
+  let tip=0;if(stars===5&&Math.random()<.35)tip=RI(1,4);
+  repAdd(dr);earn(inv.total,B('Tamir: '+j.cust.name+' · '+inv.model,'Repair: '+j.cust.name+' · '+inv.model));if(tip)earn(tip,B('Bahşiş','Tip'));
+  S.stats.fixed++;if(S.stats.fixed===1)ach('first');if(S.stats.fixed===5)ach('five');if(S.stats.fixed===10)ach('ten');
+  S.reviews.unshift({name:j.cust.name,stars,day:S.day,txt:REVIEWS[stars]});if(S.reviews.length>20)S.reviews.length=20;
+  for(const it of j.l.tray)if(it.owner==='shop')S.stock[it.pid]=(S.stock[it.pid]||0)+1;
+  S.jobs=S.jobs.filter(x=>x!==j);if(S.benchId===inv.id)S.benchId=null;
+  RT.tok++;fanSound(false);
+  ui.modal={k:'paid',total:inv.total,tip,msg,dr,stars,faults:j.faults,name:j.cust.name};render();
+}
+const REVIEWS={5:B('Hızlı ve dürüst. Sorunu tek seferde çözdü.','Fast and honest. Fixed it in one go.'),4:B('İşini biliyor, fiyat biraz yüksek.','Knows the job, a bit pricey.'),2:B('Tamir oldu ama fiyat fazlaydı.','It got fixed but the price was steep.'),1:B('Kazık! Tavsiye etmem.','Rip-off! Wouldn\'t recommend.')};
+
+/* =================== ordering & shop =================== */
+function buy(pid,express){
+  if(!canWork())return;
+  const P=PARTS[pid];const cost=Math.round(P.c*(express?(has('cabinet')?1.15:1.35):1));
+  if(S.money<cost){toast(B('Kasada yeterli para yok.','Not enough cash in the till.'));return;}
+  pay(cost,B('Sipariş: '+P.n.tr,'Order: '+P.n.en));
+  const o={pid,q:1,day:express?S.day:S.day+1,at:express?S.time+90:null};
+  if(express&&o.at>=CLOSE){o.day=S.day+1;o.at=null;}
+  S.orders.push(o);toast(express?B('Ekspres kurye yola çıktı (~90 dk).','Express courier on the way (~90 min).'):B('Sipariş verildi, yarın sabah gelir.','Ordered. It arrives tomorrow morning.'));render();
+}
+function buyTool(k){const T=TOOLS[k];if(has(k))return;if(S.money<T.c){toast(B('Kasada yeterli para yok.','Not enough cash in the till.'));return;}pay(T.c,B('Alet: '+T.n.tr,'Tool: '+T.n.en));S.tools[k]=1;sfx('cash');toast(B(T.n.tr+' alındı.',T.n.en+' purchased.'));
+  if(k==='vitrin'){S.arrivals.push(Math.min(S.time+40,CLOSE-70));S.arrivals.sort((a,b)=>a-b);}
+  render();}
+
+/* =================== day cycle =================== */
+function endDay(){
+  pay(RENT,B('Kira ve faturalar','Rent and bills'));
+  let late=0;for(const j of S.jobs)if(S.day>=j.due)late++;
+  if(late)repAdd((has('coffee')?-.05:-.1)*late);
+  const sum={day:S.day,inc:S.today.inc,exp:S.today.exp,rent:RENT,late,left:S.queue.length,money:S.money};
+  S.queue=[];S.day++;S.time=9*60;S.today={inc:0,exp:0};ui.closing=false;
+  if(S.day>=5)ach('day5');
+  const pend=S.orders.filter(o=>!o.done);
+  for(const o of pend)if(o.at==null&&o.day<=S.day)deliver(o);
+  for(const o of pend)if(!o.done&&o.at!=null)deliver(o);
+  S.orders=S.orders.filter(o=>!o.done);
+  S.arrivals=genArrivals(9*60);
+  for(const j of S.jobs){j.l.st.powered=false;j.l.st.screen='off';j.l.st.plug=null;}
+  RT.tok++;fanSound(false);
+  openModal({k:'summary',sum});
+}
+function shutter(text,cb){const d=document.createElement('div');d.id='shutter';d.innerHTML='<div>'+esc(text)+'</div>';document.body.appendChild(d);setTimeout(()=>{if(cb)cb();d.classList.add('up');},700);setTimeout(()=>d.remove(),2300);}
+
+/* =================== tutorial =================== */
+const TUT=[
+  {t:B('Hoş geldin usta! Ben <b>Rıza Usta</b>, yanında çıraklık yaptığın adam. İlk müşterin kapıda: komşun <b>Selim Abi</b>. Dinle bakalım derdi ne.','Welcome! I\'m <b>Master Rıza</b>, the man you apprenticed under. Your first customer is at the door: your neighbour <b>Selim</b>. Let\'s hear what\'s wrong.'),btn:B('Dinleyelim','Let\'s listen')},
+  {t:B('"Oyunda kapanıyor, fan bağırıyor." Bu ısınma kokuyor. <b>İşi al</b>.','"Shuts down in games, fan screams." Smells like overheating. <b>Take the job</b>.'),sel:'[data-act=accept]',done:()=>S.jobs.length>0},
+  {t:B('Laptop masanda. Alttaki <b>Masa</b> sekmesine geç.','The laptop is on your bench. Switch to the <b>Bench</b> tab below.'),sel:'[data-nav=bench]',done:()=>ui.view==='bench'},
+  {t:B('Usta kuralı 1: <b>Önce arızayı kendi gözünle gör.</b> Müşterinin adaptörünü tak.','Rule 1: <b>See the fault with your own eyes first.</b> Plug in the customer\'s charger.'),sel:'[data-act=plug][data-s=cust]',done:()=>L()&&L().st.plug},
+  {t:B('Şimdi <b>güç düğmesine</b> bas ve açılışı izle.','Now press the <b>power button</b> and watch it boot.'),sel:'[data-act=power]',done:()=>L()&&L().st.screen==='win'},
+  {t:B('Windows açıldı. Masaüstündeki <b>Stres Testi</b>\'ni çalıştır ve sıcaklığı izle.','Windows is up. Run the <b>Stress Test</b> on the desktop and watch the temperature.'),sel:'[data-a=stress]',done:()=>L()&&L().found.overheat},
+  {t:B('97°C\'yi geçince işlemci kendini korumak için sistemi kapattı: <b>termal kapanma</b>. Şimdi <b>adaptörü çıkar</b>; elektrik varken içini açmayız.','Past 97°C the CPU shut everything down to protect itself: <b>thermal shutdown</b>. Now <b>unplug the charger</b>; we never open a laptop with power in it.'),sel:'[data-act=plug][data-s=cust]',done:()=>L()&&!L().st.plug},
+  {t:B('Laptopu <b>ters çevir</b>.','<b>Flip the laptop</b> over.'),sel:'[data-act=flip]',done:()=>L()&&L().st.view==='under'},
+  {t:B('Kapaktaki <b>vidaları tek tek sök</b>. Her vidaya dokun.','<b>Remove the screws</b> one by one. Tap each screw.'),sel:'.scrw:not(.out)',done:()=>{const s=L()&&L().st.screws;return s&&s.slice(0,-1).every(v=>!v);}},
+  {t:B('Şimdi <b>spatulayla kapağı açmayı</b> dene.','Now try to <b>pry the cover open</b>.'),sel:'[data-act=pry]',done:()=>L()&&L().triedPry},
+  {t:B('Kapak bir yerden tutuyor, değil mi? Zorlarsan klipsler kırılır. Birçok laptopta bir vida <b>lastik ayağın altına</b> saklanır. Sol alttaki ayağı kaldır.','Still holding somewhere, right? Force it and the clips break. Many laptops hide a screw <b>under a rubber foot</b>. Peel up the bottom-left foot.'),sel:'[data-act=foot]',done:()=>L()&&L().st.feetOff},
+  {t:B('İşte gizli vida! Onu da sök, sonra <b>kapağı aç</b>.','There\'s the hidden screw! Take it out, then <b>open the cover</b>.'),sel:'.scrw:not(.out),[data-act=pry]',done:()=>L()&&!L().st.coverOn},
+  {t:B('Usta kuralı 2: <b>Hiçbir parçaya dokunmadan önce bataryayı ayır.</b> Beyaz konnektöre dokun.','Rule 2: <b>Disconnect the battery before touching anything.</b> Tap the white connector.'),sel:'[data-c=batcon]',done:()=>L()&&!L().st.batConn},
+  {t:B('Fan toz yumağı olmuş. Fana dokun ve <b>fırçayla temizle</b>.','The fan is a ball of dust. Tap it and <b>clean it with the brush</b>.'),sel:'[data-c=fan]',done:()=>L()&&L().st.fan.dust<.4},
+  {t:B('Şimdi <b>soğutucuyu sök</b>, altındaki macuna bakalım.','Now <b>remove the heatsink</b> and look at the paste.'),sel:'[data-c=hs]',done:()=>L()&&!L().st.hs},
+  {t:B('Macun kurumuş, çatlamış. İşlemciye dokun ve eski macunu <b>izopropille temizle</b>.','The paste is dry and cracked. Tap the CPU and <b>clean it off with isopropyl</b>.'),sel:'[data-c=hs]',done:()=>L()&&L().st.paste==='none'},
+  {t:B('Şimdi <b>yeni macun sür</b>. Pirinç tanesi kadarı yeter.','Now <b>apply fresh paste</b>. A pea-sized dot is enough.'),sel:'[data-c=hs]',done:()=>L()&&L().st.paste==='good'},
+  {t:B('<b>Soğutucuyu geri tak</b>. Vidalar çapraz sırayla sıkılır.','<b>Refit the heatsink</b>. Screws go in cross order.'),sel:'[data-c=hs]',done:()=>L()&&L().st.hs},
+  {t:B('<b>Bataryayı tekrar bağla</b>.','<b>Reconnect the battery</b>.'),sel:'[data-c=batcon]',done:()=>L()&&L().st.batConn},
+  {t:B('<b>Kapağı kapat</b>, bütün vidaları tak (gizli vida dahil), sonra lastik ayağı yapıştır.','<b>Close the cover</b>, fit every screw (the hidden one too), then stick the foot back.'),sel:'[data-act=closeCover],.scrw.out,[data-act=footBack]',done:()=>{const l=L();return l&&l.st.coverOn&&l.st.screws.every(Boolean)&&!l.st.feetOff;}},
+  {t:B('Usta kuralı 3: <b>Test etmeden teslim etme.</b> Çevir, adaptörü tak, aç ve stres testini tekrar çalıştır.','Rule 3: <b>Never hand back without testing.</b> Flip it, plug in, power on and run the stress test again.'),sel:'[data-act=flip],[data-act=plug][data-s=cust],[data-act=power],[data-a=stress]',done:()=>L()&&L().lastStress&&L().lastStress<90&&L().st.coverOn},
+  {t:B('Sıcaklık normal, kapanma yok. Bilgisayarı <b>kapat</b>, sonra <b>Müşteriyi ara</b>.','Normal temperature, no shutdown. <b>Turn it off</b>, then <b>Call the customer</b>.'),sel:'[data-act=power],[data-act=call]',done:()=>(ui.modal&&['invoice','receipt','paid'].includes(ui.modal.k))||!S.jobs.length},
+  {t:B('İşçiliği yaz. Adil fiyat itibarını artırır, kazık fiyat düşürür. <b>Faturayı kes</b>, sonra <b>kasaya al</b>.','Set the labour. A fair price builds reputation; overcharging wrecks it. <b>Print the invoice</b>, then <b>ring it up</b>.'),sel:'[data-act=issue],[data-act=take]',done:()=>!S.jobs.length},
+  {t:B('İlk tamirin hayırlı olsun! Bundan sonrası sende. Takılırsan masada <b>İpucu</b> var. Parçaları <b>Bilgisayar</b> sekmesinden sipariş edersin. Para biriktir: <b>satış vitrini</b> alırsan aksesuar da satarsın.','Congrats on your first repair! It\'s your shop now. Stuck? There\'s a <b>Hint</b> button on the bench. Order parts from the <b>Computer</b> tab. Save up for a <b>display case</b> and you can sell accessories too.'),btn:B('Dükkanı devral','Take over the shop')}
+];
+function tutStep(){return S&&S.tut.on?TUT[S.tut.step]:null;}
+function tutCheck(){let g=0;while(S.tut.on&&g++<30){const s=TUT[S.tut.step];if(!s||s.btn||!s.done||!s.done())break;S.tut.step++;}if(S.tut.on&&S.tut.step>=TUT.length)endTut();}
+function endTut(){S.tut.on=false;S.arrivals=genArrivals(S.time+20).slice(0,2);if(!S.arrivals.length)S.arrivals=[Math.min(S.time+30,CLOSE-70)];render();}
+
+/* =================== hints =================== */
+const FAULT_PROB={overheat:['dust','paste','hs'],fan_dead:['fan'],charger:['charger'],bat_worn:['worn','nobat','batconn'],bat_swollen:['swollen','nobat'],ram_loose:['seat','noram'],ram_bad:['badram'],ssd_dead:['baddisk','noboot'],virus:['virus'],bootloop:['corrupt'],driver:['driver'],bloat:['bloat'],ram_up:['noup'],mb_dead:['dead'],hdd_slow:['hdd','noboot'],cmos:['cmos'],dcjack:['dc'],wifi:['ant'],liquid:['corr','kb']};
+function hint(){
+  const j=cur();if(!j)return;const l=j.l;l.hints++;const P=problems(l);let body;
+  if(!P.length)body=B('Her şey yolunda görünüyor. Kapat ve müşteriyi ara.','Everything looks fine. Turn it off and call the customer.');
+  else{const f=j.faults.find(f=>P.some(p=>(FAULT_PROB[f]||[]).includes(p.id)));
+    body=f?FAULTS[f].hint[l.found[f]?1:0]:B('Müşterinin asıl derdi çözülmüş gibi. Ama şu kaldı: '+P[0].t.tr,'The main complaint looks fixed. But this is left: '+P[0].t.en);}
+  openModal({k:'msg',title:B('Rıza Usta diyor ki','Master Rıza says'),body});
+}
+
+/* =================== rendering =================== */
+const ICON={
+  counter:'<svg viewBox="0 0 24 24"><path d="M3 10h18v10H3zM3 10l2-5h14l2 5M9 14h6"/></svg>',
+  bench:'<svg viewBox="0 0 24 24"><path d="M4 15h16M6 15v5M18 15v5M7 15l2-6h6l2 6M12 4v5"/></svg>',
+  shelf:'<svg viewBox="0 0 24 24"><path d="M4 4h16v16H4zM4 10h16M4 15h16M8 7h4M8 12.5h6"/></svg>',
+  pc:'<svg viewBox="0 0 24 24"><path d="M3 5h18v11H3zM9 20h6M12 16v4"/></svg>'
+};
+function renderHud(){
+  $('#hud').innerHTML=`<div class="wrap"><div class="sign">${esc(S.name)}</div>
+  <div class="stat"><span>${t('Gün','Day')} <b>${S.day}</b></span><span><b>${hhmm(S.time)}</b></span><span><b style="color:${S.money<0?'var(--bad)':'var(--fg)'}">${usd(S.money)}</b></span><span class="stars" title="${t('İtibar','Reputation')}">★ ${S.rep.toFixed(1)}</span><button class="ibtn" data-act="menu">${t('Menü','Menu')}</button></div></div>`;
+}
+function renderNav(){
+  const b=(k,tx,badge,g)=>`<button data-act="nav" data-nav="${k}" class="${ui.view===k?'on':''}">${ICON[k]}${tx}${badge?`<span class="badge ${g?'g':''}">${badge}</span>`:''}</button>`;
+  $('#nav').innerHTML=`<div class="wrap">${b('counter',t('Tezgah','Counter'),S.queue.length)}${b('bench',t('Masa','Bench'),'')}${b('shelf',t('Raf','Shelf'),S.jobs.length)}${b('pc',t('Bilgisayar','Computer'),S.orders.length,1)}</div>`;
+}
+function avatar(c){return `<div class="cust"><div class="hair" style="background:${c.hair}"></div><div class="head"></div><div class="body" style="background:${c.shirt}"></div></div>`;}
+function sceneHtml(c){
+  const vit=has('vitrin')?`<div class="vitrin">${['r_mouse','r_headset','r_flash','r_wmouse','r_kbd','r_cooler','r_cam','r_extssd'].map(p=>`<i style="background:${PARTS[p].col};opacity:${stock(p)?1:.15}"></i>`).join('')}</div>`:'';
+  return `<div class="scene ${has('light')?'lit':''}">${has('sign')?`<div class="neon">${esc(S.name.toUpperCase())}</div>`:''}${vit||'<div class="win"></div>'}<div class="poster">${t('FAN TEMİZLİĞİ<br>MACUN DEĞİŞİMİ<br>SSD YÜKSELTME','FAN CLEANING<br>THERMAL PASTE<br>SSD UPGRADES')}</div>${has('tv')?'<div class="tv"><i></i></div>':''}${has('cabinet')?'<div class="cab"></div>':''}${c?avatar(c):''}<div class="counterTop"></div>${has('coffee')?'<div class="coffee"><i></i></div>':''}${c&&!c.retail?`<div class="lapOn" style="background:${MODELS[c.l.model].look.lap}"></div>`:''}<div class="register"><div class="rd">${usd(S.money).slice(0,7)}</div><div class="rb"></div><div class="dr"></div></div></div>`;
+}
+function renderCounter(){
+  const c=S.queue[0];
+  if(!c){const nx=S.arrivals[0];
+    return `<h2>${t('Tezgah','Counter')}</h2>${sceneHtml(null)}
+    <div class="card" style="margin-top:12px"><p>${t('Tezgah boş.','Nobody at the counter.')}</p>${nx?`<p class="dim">${t('Sıradaki müşteri yaklaşık '+hhmm(nx)+' civarı gelir.','The next customer should arrive around '+hhmm(nx)+'.')}</p><div class="btns" style="margin-top:10px"><button class="btn" data-act="wait">${t('Müşteriyi bekle','Wait for the next customer')}</button></div>`:`<p class="dim">${t('Bugün başka müşteri beklemiyorsun.','No more customers expected today.')}</p><div class="btns" style="margin-top:10px"><button class="btn" data-act="endAsk">${t('Dükkanı kapat','Close the shop')}</button></div>`}</div>`;}
+  if(c.retail){const P=PARTS[c.want];const ok=stock(c.want)>0;
+    const lines=[B('Merhaba, '+P.n.tr+' var mı? Acil lazım.','Hi, do you have a '+P.n.en.toLowerCase()+'? I need one today.'),B('İyi günler, '+P.n.tr+' arıyorum. Ne kadar?','Hello, I\'m looking for a '+P.n.en.toLowerCase()+'. How much?'),B(P.n.tr+' satıyor musunuz?','Do you sell a '+P.n.en.toLowerCase()+'?')];
+    return `<h2>${t('Tezgah','Counter')}</h2>${sceneHtml(c)}<div class="bubble"><b>${esc(c.name)}</b> <span style="color:#5b6b78">· ${esc(X(c.role))}</span><br>"${esc(X(lines[c.v]))}"</div>
+    <div class="card" style="margin-top:12px;display:grid;gap:10px"><div><span class="chip ok">${t('Perakende','Retail')}</span> <span class="chip">${esc(X(P.n))}</span> <span class="chip ${ok?'':'bad'}">${t('Stok','Stock')}: ${stock(c.want)}</span></div>
+    <div class="btns"><button class="btn pri" data-act="sell" ${ok?'':'disabled'}>${ok?t('Sat','Sell')+' · '+usd(sp(c.want)):t('Stokta yok','Out of stock')}</button><button class="btn" data-act="decline">${ok?t('Vazgeçti','Not today'):t('Kusura bakma, yok','Sorry, none left')}</button></div>
+    ${ok?'':`<p class="dim" style="font-size:13px">${t('İpucu: Bilgisayar sekmesinden bu üründen stok tut.','Tip: stock this item from the Computer tab.')}</p>`}</div>`;}
+  const M=MODELS[c.l.model];
+  return `<h2>${t('Tezgah','Counter')}</h2>${sceneHtml(c)}
+  <div class="bubble"><b>${esc(c.name)}</b> <span style="color:#5b6b78">· ${esc(X(c.role))}</span><br>"${esc(X(c.say))}"</div>
+  <div class="card" style="margin-top:12px;display:grid;gap:10px">
+   <div><span class="chip">${esc(M.name)}</span> <span class="chip">${t('Teslim: 2 gün','Due in 2 days')}</span> <span class="chip">${t('Raf','Shelf')} ${S.jobs.length}/${shelfCap()}</span>${S.queue.length>1?` <span class="chip warn">${t('Sırada '+(S.queue.length-1)+' kişi daha',(S.queue.length-1)+' more waiting')}</span>`:''}</div>
+   <div class="btns"><button class="btn pri" data-act="accept">${t('İşi al','Take the job')}</button><button class="btn" data-act="decline" ${c.tut?'disabled':''}>${t('Kibarca reddet','Politely decline')}</button></div></div>`;
+}
+function renderShelf(){
+  if(!S.jobs.length)return `<h2>${t('Raf','Shelf')}</h2><div class="card"><p>${t('Rafta laptop yok.','No laptops on the shelf.')}</p><p class="dim">${t('Tezgahtan iş aldıkça burada birikir.','Jobs you take at the counter wait here.')}</p></div>`;
+  return `<h2>${t('Raf','Shelf')} <span class="dim" style="font-size:14px">${S.jobs.length}/${shelfCap()}</span></h2><div class="grid2">${S.jobs.map(j=>{const M=MODELS[j.l.model];const late=S.day>j.due,today=S.day===j.due;
+    return `<div class="card job"><div class="top"><b>${esc(M.name)}</b>${S.benchId===j.id?`<span class="chip ok">${t('Masada','On bench')}</span>`:''}</div>
+    <div class="dim" style="font-size:13px">${esc(j.cust.name)} · ${late?`<span style="color:var(--bad)">${t('Gecikti','Overdue')}</span>`:today?`<span style="color:var(--warn)">${t('Bugün teslim','Due today')}</span>`:t('Teslim: Gün ','Due: day ')+j.due}</div>
+    <div class="say">"${esc(X(j.say))}"</div>
+    <div class="btns">${S.benchId!==j.id?`<button class="btn sm" data-act="toBench" data-id="${j.id}">${t('Masaya al','Move to bench')}</button>`:`<button class="btn sm" data-act="nav" data-nav="bench">${t('Masaya git','Go to bench')}</button>`}<button class="btn sm" data-act="call" data-id="${j.id}">${t('Müşteriyi ara','Call customer')}</button></div></div>`;}).join('')}</div>`;
+}
+function lookVars(M){const k=M.look;return `--c1:${k.c1};--c2:${k.c2};--lid:${k.lid};--deck1:${k.d1};--deck2:${k.d2};--key:${k.key};--glow:${k.glow||'transparent'};--rad:${k.rad};--pcbA:${k.pcb[0]};--pcbB:${k.pcb[1]}`;}
+function renderBench(){
+  const j=cur();
+  if(!j)return `<h2>${t('Tamir masası','Repair bench')}</h2><div class="mat" style="min-height:220px;display:grid;place-items:center;text-align:center"><div><p>${t('Masa boş.','The bench is empty.')}</p><p style="color:#bfe0ee">${t('Raftan bir laptop al ya da tezgahtan iş kabul et.','Take a laptop from the shelf or accept a job at the counter.')}</p><div class="btns" style="justify-content:center;margin-top:10px"><button class="btn" data-act="nav" data-nav="shelf">${t('Rafa git','Go to shelf')}</button></div></div></div>`;
+  const l=j.l,st=l.st,M=MODELS[l.model];
+  return `<div class="jobbar"><div class="who"><h2 style="margin:0">${esc(M.name)}</h2><div class="dim" style="font-size:13px">${esc(j.cust.name)} · "${esc(X(j.say))}"</div></div>
+    <div class="btns"><button class="btn sm" data-act="hint">${t('İpucu','Hint')}</button><button class="btn sm" data-act="notes">${t('Not defteri','Notebook')}</button><button class="btn sm" data-act="toShelf">${t('Rafa koy','Shelve')}</button><button class="btn sm pri" data-act="call" data-id="${j.id}">${t('Müşteriyi ara','Call customer')}</button></div></div>
+  <div class="benchCols"><div class="mat ${has('bench2')?'pro':''} ${has('lamp')?'lamp':''}" style="${lookVars(M)}">${has('lamp')?'<div class="lampHead"></div>':''}
+    <div class="btns" style="justify-content:space-between;margin-bottom:12px"><div class="seg"><button data-act="flip" data-to="front" class="${st.view==='front'?'on':''}">${t('Ön','Front')}</button><button data-act="flip" data-to="under" class="${st.view==='under'?'on':''}">${t('Alt','Bottom')}</button></div>
+    ${st.view==='under'?`<button class="ibtn" style="color:#cfe4ee" data-act="labels">${ui.labels?t('Etiketleri gizle','Hide labels'):t('Etiketleri göster','Show labels')}</button>`:''}</div>
+    ${st.view==='front'?frontView(l):underView(l)}
+  </div><div>
+    ${st.view==='front'?frontCtrl(l):underCtrl(l)}
+    <div class="notes">${l.log.slice(-3).reverse().map(n=>`<div><span class="mono dim">${n.time}</span> ${esc(X(n.t))}</div>`).join('')}</div>
+    ${l.tray.length?`<h3>${t('Parça tepsisi','Parts tray')}</h3><div class="dim" style="font-size:13px">${l.tray.map(x=>esc(PN(x.pid))+(x.owner==='shop'?t(' (stok)',' (stock)'):'')).join(' · ')}</div>`:''}
+  </div></div>`;
+}
+function frontView(l){
+  const st=l.st,M=MODELS[l.model];const led=chargeLed(l);
+  return `<div class="lapF" style="max-width:${Math.round(5.6*M.look.w)}px"><div class="lid"><div class="scr">${screen(l)}<div class="refl"></div></div>${M.look.stripe?`<div class="stripe" style="background:${M.look.stripe}"></div>`:''}</div><div class="hinge"></div>
+   <div class="deck"><div class="kbd ${M.look.glow&&st.powered?'glow':''}"></div><button class="pwr" data-act="power" aria-label="${t('Güç düğmesi','Power button')}"></button><div class="tpad ${st.bat&&st.bat.swollen?'raised':''}"></div>
+   <div class="leds"><i class="led ${st.powered?'on':''}"></i><i class="led ${led}"></i></div></div>
+   ${st.plug?`<div class="cable ${st.plug==='test'?'test':''}" data-l="${st.plug==='test'?t('Test adaptörü','Test adapter'):t('Müşteri adaptörü','Customer charger')}"></div>`:''}</div>`;
+}
+function bootLogo(M,withBar){
+  const b=M.boot;let inner=`<div class="bl">${esc(M.brand)}</div>`;
+  if(b==='dalle')inner+=`<div class="bar"><i></i></div>`;
+  if(b==='tosiba')inner+=`<div class="sub">Leading Innovation &gt;&gt;&gt;</div>`;
+  if(b==='lenvo'||b==='aser'||b==='samsunk'||b==='msg')inner+=`<div class="dots"><i></i><i></i><i></i></div>`;
+  if(b==='asis')inner+='<div class="sub2"></div>';if(b==='huvavi')inner='<div class="petal"></div>'+inner;
+  return `<div class="s-post b-${b}"><div>${inner}</div><div class="f2">F2 Setup · F12 Boot</div></div>`;
+}
+function screen(l){
+  const st=l.st,M=MODELS[l.model];if(!st.powered)return '';
+  switch(st.screen){
+    case 'post':case 'beep':return '';
+    case 'logo':return bootLogo(M);
+    case 'load2':return `<div class="s-post"><div><div style="font-family:var(--f-body)">Windows</div><div class="dots"><i></i><i></i><i></i></div></div></div>`;
+    case 'loading':return `<div class="s-post"><div><div style="font-family:var(--f-body)">${t('Hazırlanıyor…','Getting ready…')}</div><div class="dots"><i></i><i></i><i></i></div><div style="font-size:.8em;color:#999;margin-top:6px">${t('(disk ışığı sürekli yanıyor)','(the disk light never stops)')}</div></div></div>`;
+    case 'cmos':return `<div class="s-text">CMOS Checksum Error - Defaults loaded\nDate/Time not set: 01/01/2009 00:00\n\nPress F1 to continue, F2 to enter SETUP</div>`;
+    case 'noboot':return `<div class="s-text">No bootable device -- insert boot disk and press any key</div>`;
+    case 'bsod':return `<div class="s-bsod"><b>:(</b><p style="margin-top:6%">${t('Bilgisayarınız bir sorunla karşılaştı ve yeniden başlatılması gerekiyor.','Your PC ran into a problem and needs to restart.')}</p><p style="margin-top:4%;font-size:.85em">Stop code: MEMORY_MANAGEMENT</p></div>`;
+    case 'autorepair':return `<div class="s-bsod" style="background:#0b5cad"><p style="font-size:1.2em">${t('Bilgisayarınız düzgün başlatılamadı','Your PC did not start correctly')}</p><p style="margin-top:5%;font-size:.85em">${t('Otomatik Onarım bilgisayarınızı onaramadı. Yeniden başlatın ya da gelişmiş seçenekleri deneyin.','Automatic Repair couldn\'t repair your PC. Restart, or try advanced options.')}</p><p style="margin-top:5%;font-size:.8em;opacity:.7">Log: SrtTrail.txt</p></div>`;
+    case 'bios':return biosScreen(l);
+    case 'boot':return bootMenu(l);
+    case 'memtest':return `<div class="s-text" style="background:#00007a;color:#fff">MemTest86 v10\n${esc(X(st.memRes))}</div>`;
+    case 'setup':return `<div class="s-text" style="background:#1f3f7a">${esc(X(st.setupMsg))}</div>`;
+    case 'win':return winScreen(l);
+  }
+  return '';
+}
+function biosScreen(l){
+  const st=l.st;const d=x=>x?(x.ok?PN(x.pid):`<span class="w">${t('Algılanmadı','Not detected')}</span>`):'—';
+  const b=st.bat&&st.batConn?st.bat:null;
+  const idle=Math.round(40+st.fan.dust*12+(st.paste==='dry'?6:st.paste==='none'?20:0)+(st.fan.ok?0:14));
+  return `<div class="s-bios"><h4>BIOS SETUP UTILITY — Main</h4><table>
+  <tr><td>${t('Tarih/Saat','Date/Time')}</td><td>${st.cmosV<2.5?'<span class="w">01/01/2009 00:03</span>':'30/10/2026 '+hhmm(S.time)}</td></tr>
+  <tr><td>CPU</td><td>${idle}°C ${idle>60?`<span class="w">(${t('boşta yüksek','high at idle')})</span>`:''}</td></tr>
+  ${st.ram.map((r,i)=>`<tr><td>RAM Slot ${i+1}</td><td>${r&&r.seated?PN(r.pid):t('Boş','Empty')}</td></tr>`).join('')}
+  <tr><td>M.2</td><td>${d(st.m2)}</td></tr><tr><td>SATA</td><td>${d(st.bay)}</td></tr>
+  <tr><td>${t('Batarya','Battery')}</td><td>${b?t('Şarj %','Charge ')+Math.round(b.charge)+(PREF.lang==='en'?'%':'')+' · '+t('Sağlık %','Health ')+Math.round(b.health)+(PREF.lang==='en'?'%':'')+(b.health<60?` <span class="w">(${t('zayıf','weak')})</span>`:''):`<span class="w">${t('Algılanmadı','Not detected')}</span>`}</td></tr>
+  <tr><td>${t('Adaptör','Adapter')}</td><td>${plugState(l)?t('Bağlı','Connected'):t('Yok','None')}</td></tr></table></div>`;
+}
+function bootMenu(l){const bd=bootDrive(l);
+  return `<div class="s-menu">Boot Menu<br><br><button data-act="bootSel" data-o="win" ${bd?'':'disabled'}>Windows Boot Manager ${bd?'':'(—)'}</button><button data-act="bootSel" data-o="setup">USB: Windows Setup</button><button data-act="bootSel" data-o="repair">USB: ${t('Başlangıç Onarımı','Startup Repair')}</button>${has('diag')?'<button data-act="bootSel" data-o="memtest">USB: MemTest86</button>':''}<button data-act="bootSel" data-o="bios">BIOS Setup</button></div>`;}
+const WALL={lenvo:'linear-gradient(140deg,#2b1d3a,#5a2a4a 60%,#1d1a2e)',aser:'linear-gradient(140deg,#123a2a,#2e7e5a 60%,#0d2a1e)',hb:'linear-gradient(140deg,#0e3058,#2a72c0 60%,#0b2240)',dalle:'linear-gradient(140deg,#0c2440,#235b9a 60%,#0a1c33)',canavar:'linear-gradient(140deg,#200608,#7a1010 60%,#120405)',tosiba:'linear-gradient(140deg,#123a5f,#2e6f9e 60%,#1d4f7a)',asis:'linear-gradient(140deg,#1a2a52,#3a5fae 60%,#16224a)',msg:'linear-gradient(140deg,#140404,#5a0a0a 55%,#0a0a0a)',samsunk:'linear-gradient(140deg,#0b2e6b,#2f74e0 60%,#0a2456)',huvavi:'linear-gradient(140deg,#1d1d24,#4a4a5a 60%,#141418)'};
+function winScreen(l){
+  const st=l.st,M=MODELS[l.model];
+  const icons=[['stress',t('Stres Testi','Stress Test')],['battery',t('Pil Raporu','Battery Report')],['taskmgr',t('Görev Yöneticisi','Task Manager')],['wifi','Wi-Fi'],['kbd',t('Klavye Testi','Keyboard Test')],['clock',t('Tarih ve Saat','Date & Time')],['av',t('Antivirüs','Antivirus')],['devmgr',t('Aygıt Yöneticisi','Device Manager')]];
+  let w='';
+  if(st.app){const k=st.app;let body='',title='';
+    if(k==='stress'){title=t('Stres Testi','Stress Test');body=`${t('CPU %100 yük altında…','CPU at 100% load…')}<div style="font-size:2.4em;font-weight:700;margin:4% 0" id="stressVal">48°C</div><div class="meter"><i id="stressBar" style="width:48%"></i></div><div style="font-size:.85em;color:#555">${t('97°C üzeri: termal kapanma riski','Above 97°C: thermal shutdown risk')}</div>`;}
+    if(k==='battery'){title=t('Pil Raporu','Battery Report');const b=st.bat&&st.batConn?st.bat:null;body=b?`${t('Tasarım kapasitesi','Design capacity')}: 45,000 mWh<br>${t('Tam şarj kapasitesi','Full charge capacity')}: ${Math.round(450*b.health).toLocaleString('en-US')} mWh<div class="meter"><i style="width:${b.health}%;background:${b.health<60?'#c62828':'#2f8f5b'}"></i></div>${t('Sağlık','Health')}: ${Math.round(b.health)}%${b.health<60?` — <b style="color:#c62828">${t('değiştirin','replace')}</b>`:''}`:t('Batarya algılanmadı.','No battery detected.');}
+    if(k==='taskmgr'){title=t('Görev Yöneticisi','Task Manager');const d=bootDrive(l);const hd=d&&d.smart;body=`CPU 4%<div class="meter"><i style="width:4%"></i></div>${t('Bellek','Memory')} ${ramTotal(l)} GB<div class="meter"><i style="width:38%"></i></div>Disk ${hd?'100%':'3%'}<div class="meter"><i style="width:${hd?100:3}%;background:${hd?'#c62828':'#2f8f5b'}"></i></div>${hd&&has('diag')?`<b style="color:#c62828">SMART: ${t('DİKKAT — 412 yeniden atanmış sektör','CAUTION — 412 reallocated sectors')}</b>`:''}<div style="margin-top:6px"><b>${t('Başlangıç','Startup')}:</b> ${(st.sw||{}).bloat?`${t('38 program, yüksek etki','38 programs, high impact')}<br><button class="btn sm pri" data-act="bloatFix" style="margin-top:4px">${t('Gereksizleri devre dışı bırak (5 dk)','Disable the unnecessary ones (5 min)')}</button>`:t('6 program, düşük etki','6 programs, low impact')}</div>`;}
+    if(k==='av'){title=t('Antivirüs','Antivirus');body=st.avRes==null?`${t('Son tarama: hiç','Last scan: never')}<div style="margin-top:8px"><button class="btn sm pri" data-act="avScan">${t('Tam tarama (20 dk)','Full scan (20 min)')}</button></div>`:(st.avRes>0?`<b style="color:#c62828">${st.avRes} ${t('tehdit bulundu','threats found')}</b><br>Trojan:Win32/Wacatac, PUA:Win32/Adware…<div style="margin-top:8px"><button class="btn sm pri" data-act="avClean">${t('Karantinaya al ve temizle','Quarantine and remove')}</button></div>`:`<b style="color:#1e7a46">${t('Tehdit bulunamadı.','No threats found.')}</b>`);}
+    if(k==='devmgr'){title=t('Aygıt Yöneticisi','Device Manager');body=(st.sw||{}).driver?`⚠ ${t('Ses denetleyicisi (sürücü yok)','Audio controller (no driver)')}<br>⚠ ${t('Microsoft Temel Görüntü Bağdaştırıcısı','Microsoft Basic Display Adapter')}<br>⚠ ${t('Bilinmeyen aygıt','Unknown device')}<br>✓ ${t('Klavye','Keyboard')}<br>✓ Wi-Fi<div style="margin-top:8px"><button class="btn sm pri" data-act="drvInstall">${t('Üretici sürücülerini yükle (15 dk)','Install vendor drivers (15 min)')}</button></div>`:`✓ ${t('Tüm aygıtlar düzgün çalışıyor.','All devices are working properly.')}`;}
+    if(k==='wifi'){title='Wi-Fi';body=st.ant?'HomeNet_5G ▂▄▆█<br>TurkNet_2.4 ▂▄▆<br>Cafe_Guest ▂▄<br>…':t('Kullanılabilir ağ bulunamadı.','No networks available.')+`<br><br><span style="color:#555">${t('Sürücü yüklü, kart çalışıyor görünüyor.','Driver installed, the card seems to work.')}</span>`;}
+    if(k==='kbd'){title=t('Klavye Testi','Keyboard Test');const keys='1234567890QWERTYUIOPASDFGHJKLZXCVBNM'.split('');body=`<div class="kgrid">${keys.map(c=>`<span class="${!st.kb&&'QWER56TYUIOP'.includes(c)?'x':''}">${c}</span>`).join('')}</div><p style="margin-top:6px">${st.kb?t('Tüm tuşlar tepki veriyor.','Every key responds.'):t('Kırmızı tuşlar tepki vermiyor.','Red keys don\'t respond.')}</p>`;}
+    if(k==='clock'){title=t('Tarih ve Saat','Date & Time');body=st.cmosV<2.5?`01/01/2009 00:05<br><span style="color:#c62828">${t('Saat senkronize edilemedi. Sertifika hataları olabilir.','Clock can\'t sync. Expect certificate errors.')}</span>`:'30/10/2026 '+hhmm(S.time);}
+    w=`<div class="wnd"><div class="wt">${title}<button data-act="appClose" aria-label="${t('Kapat','Close')}">✕</button></div><div class="wb">${body}</div></div>`;
+  }
+  const ad=(st.sw||{}).virus?`<div style="position:absolute;right:4%;bottom:12%;width:46%;background:#fff;color:#c00;border:2px solid #c00;border-radius:4px;padding:2%;font-size:.8em;font-weight:700;z-index:2">${t('TEBRİKLER! Telefon kazandınız! Hemen tıklayın','CONGRATULATIONS! You won a phone! Click now')}</div>`:'';
+  return `<div class="s-win" style="background:${WALL[M.boot]}">${ad}<div class="icons">${icons.map(([k,tx])=>`<button data-act="app" data-a="${k}">${tx}</button>`).join('')}</div>${w}<div class="bar"><span>${t('Başlat','Start')}</span><span>${st.ant?'Wi-Fi':'Wi-Fi ✕'} · ${hhmm(S.time)}</span></div></div>`;
+}
+function frontCtrl(l){
+  const st=l.st,M=MODELS[l.model];
+  const ledTxt={'':t('sönük','off'),amber:t('turuncu (şarj oluyor)','amber (charging)'),on:t('beyaz (dolu)','white (full)'),blink:t('turuncu yanıp sönüyor (pil hatası)','blinking amber (battery fault)'),flick:t('titriyor','flickering')}[chargeLed(l)];
+  return `<div class="ctrl">
+   <button class="btn ${st.powered?'bad':'pri'}" data-act="power">${st.powered?t('Kapat','Power off'):t('Güç düğmesi','Power button')}</button>
+   <button class="btn" data-act="plug" data-s="cust">${st.plug==='cust'?t('Müşteri adaptörünü çıkar','Unplug customer charger'):t('Müşteri adaptörünü tak','Plug in customer charger')}</button>
+   ${has('testpsu')?`<button class="btn" data-act="plug" data-s="test">${st.plug==='test'?t('Test adaptörünü çıkar','Unplug test adapter'):t('Test adaptörünü tak','Plug in test adapter')}</button>`:''}
+   <button class="btn" data-act="measureChg">${t('Adaptörü ölç','Measure charger')}</button>
+   ${stock(M.chg)&&!l.charger.given?`<button class="btn" data-act="giveChg">${t('Yeni adaptör ver','Give new charger')} (${usd(sp(M.chg))})</button>`:''}
+   ${st.powered&&st.screen==='cmos'?'<button class="btn" data-act="f1">F1</button>':''}
+   ${st.powered&&!['post','beep'].includes(st.screen)?`<button class="btn" data-act="key" data-k="F2">F2 · BIOS</button><button class="btn" data-act="key" data-k="F12">F12 · ${t('Önyükleme','Boot menu')}</button>`:''}
+   <button class="btn" data-act="flip" data-to="under">${t('Ters çevir','Flip over')}</button></div>
+   <p style="font-size:12px;margin-top:8px;color:#9fc3d4">${t('Adaptör','Charger')}: ${esc(PN(M.chg))}. ${t('Şarj ışığı','Charge light')}: ${ledTxt}.</p>`;
+}
+function underView(l){
+  const st=l.st,M=MODELS[l.model],k=M.look;
+  const style=`max-width:${Math.round(6.4*k.w)}px;aspect-ratio:${k.ar}`;
+  if(st.coverOn){
+    const n=k.screws.length;
+    let s='';for(let i=0;i<n;i++){const [x,y]=k.screws[i];s+=`<button class="scrw ${k.captive||k.torx?'torx':''} ${st.screws[i]?'':'out'}" style="left:${x}%;top:${y}%" data-act="screw" data-i="${i}" aria-label="${t('Vida','Screw')} ${i+1}"></button>`;}
+    let feet='';k.feet.forEach(([x,y,f],i)=>{const cls=f==='s'?'foot strip':'foot';const st2=f==='s'?'width:30%;height:4%':f==='s2'?'width:60%;height:4%':'';
+      if(M.hidden===i){feet+=st.feetOff?`<button class="scrw ${st.screws[n]?'':'out'}" style="left:${x}%;top:${y}%" data-act="screw" data-i="${n}" aria-label="${t('Gizli vida','Hidden screw')}"></button>`:`<button class="${cls}" style="left:${x}%;top:${y}%;${st2}" data-act="foot" aria-label="${t('Lastik ayak','Rubber foot')}"></button>`;}
+      else feet+=`<div class="${cls}" style="left:${x}%;top:${y}%;${st2}"></div>`;});
+    const vents=k.vents.map(([x,y,w,h,c])=>`<div class="vent ${c}" style="left:${x}%;top:${y}%;width:${w}%;height:${h}%"></div>`).join('');
+    return `<div class="under" style="${style}"><div class="cover">${vents}<div class="sticker">${esc(M.name)}<br>S/N ${l.model.slice(0,3).toUpperCase()}${1000+(S.benchId*37)%9000}<br>${M.usbc?'20V ⎓ 3.25A USB-C':(M.chg==='chg_b120'?'19.5V ⎓ 6.15A':'19V ⎓ 3.42A')}</div>${feet}${s}</div></div>`;
+  }
+  return `<div class="under ${ui.labels?'':'nolbl'}" style="${style}">${boardView(l)}</div>`;
+}
+function cp(c,x,y,w,h,inner,lbl,extra,lin){return `<button class="cp" data-act="comp" data-c="${c}" style="left:${x}%;top:${y}%;width:${w}%;height:${h}%;${extra||''}">${inner}<span class="lbl" ${lin?'style="bottom:6px;transform:translateX(-50%)"':''}>${lbl}</span></button>`;}
+function boardView(l){
+  const st=l.st,M=MODELS[l.model];let h='<div class="board"><div class="mb"></div><div class="deco"><i class="ic" style="left:60%;top:7%;width:8%;height:11%"></i><i class="ic" style="left:70%;top:7%;width:5%;height:4%"></i><i class="ind" style="left:70%;top:14%"></i><i class="ind" style="left:74.5%;top:14%"></i><i class="cap" style="left:69%;top:21%"></i><i class="cap" style="left:72%;top:21%"></i><i class="cap" style="left:75%;top:21%"></i><i class="hole" style="left:95%;top:3%"></i><i class="hole" style="left:95%;top:54%"></i><i class="hole" style="left:54%;top:54%"></i><i class="tr" style="left:52%;top:37%;width:6%"></i><i class="tr" style="left:52%;top:39%;width:6%"></i><i class="tr" style="left:44%;top:38%;width:14%"></i></div>';
+  const spinning=st.powered&&st.fan.ok;
+  h+=cp('fan',4,5,22,36,`<div class="fanC"><div class="blades ${spinning?(st.fan.dust>.5?'slow':'run'):''}"></div>${st.fan.dust>.1?`<div class="dust" style="opacity:${Math.min(.95,st.fan.dust)}"></div>`:''}</div>`,t('Fan','Fan'));
+  h+=cp('hs',22,9,34,26,st.hs?`<div class="hsink"><div class="pipe"></div><div class="plate"><i style="left:6%;top:6%"></i><i style="right:6%;top:6%"></i><i style="left:6%;bottom:6%"></i><i style="right:6%;bottom:6%"></i></div></div>`:`<div class="cpu"><div class="die"></div>${st.paste!=='none'?`<div class="paste ${st.paste}"></div>`:''}</div>`,st.hs?t('Soğutucu','Heatsink'):t('İşlemci','CPU'));
+  h+=cp('wifi',80,8,13,13,`<div class="wifi"><i class="ant ${st.ant?'':'loose'}" style="left:25%"></i><i class="ant w ${st.ant?'':'loose'}" style="left:65%"></i></div>`,'Wi-Fi');
+  h+=cp('cmos',82,30,8,12,'<div class="cmos"></div>','CMOS');
+  h+=cp('dc',0,30,5,12,'<div class="dcj"></div>',M.usbc?'USB-C':'DC');
+  for(let i=0;i<M.slots;i++){const r=st.ram[i];h+=cp('ram'+i,58,30+i*13,21,9,r?`<div class="ram ${r.seated?'':'loose'}"></div>`:'<div class="slot"></div>','RAM '+(i+1));}
+  if(M.m2)h+=cp('m2',27,40,24,8,st.m2?'<div class="ssd"></div>':'<div class="slot"></div>','M.2');
+  h+=cp('kbc',30,51,13,4,'<div class="kbc"></div>',t('Klavye','Keyboard'));
+  if(st.corr)h+=cp('corr',22,44,26,14,'<div class="corr"></div>',t('Oksit','Corrosion'),'z-index:2');
+  const bw=M.bay?55:86;
+  h+=cp('bat',4,64,bw,32,st.bat?`<div class="batt ${st.bat.swollen?'sw':''}" data-w="${t('ŞİŞMİŞ','SWOLLEN')}"><i></i><i></i><i></i></div>`:'<div class="empty"></div>',t('Batarya','Battery'),'',1);
+  if(st.bat)h+=cp('batcon',4+bw/2-4,58,8,5,`<div class="batc ${st.batConn?'':'off'}"></div>`,t('Konnektör','Connector'),'z-index:2');
+  if(M.bay)h+=cp('bay',62,64,34,32,st.bay?`<div class="bay ${PARTS[st.bay.pid].ssd?'ssd25':''}" data-t="${PARTS[st.bay.pid].ssd?'SSD':'HDD'}"></div>`:'<div class="empty"></div>',t('2.5" disk','2.5" drive'),'',1);
+  if(st.dead)h+='<div class="dead-x"></div>';
+  return h+'</div>';
+}
+function underCtrl(l){
+  const st=l.st,M=MODELS[l.model];const n=M.look.screws.length;const hidIn=M.hidden>=0?st.screws[n]:false;const ur=unsafeReasons(l);
+  return `<div class="ctrl">
+   ${st.coverOn?`<button class="btn pri" data-act="pry">${t('Spatulayla kapağı aç','Pry the cover open')}</button>${has('driver')?`<button class="btn" data-act="allScrews" data-o="out">${t('Tüm vidaları sök','Remove all screws')}</button><button class="btn" data-act="allScrews" data-o="in">${t('Tüm vidaları tak','Fit all screws')}</button>`:''}
+     ${M.hidden>=0&&st.feetOff&&hidIn?`<button class="btn" data-act="footBack">${t('Lastik ayağı yapıştır','Stick the foot back')}</button>`:''}`
+     :`<button class="btn pri" data-act="closeCover">${t('Kapağı kapat','Close the cover')}</button><button class="btn" data-act="comp" data-c="batcon">${st.batConn?t('Bataryayı ayır','Disconnect battery'):t('Bataryayı bağla','Connect battery')}</button><button class="btn" data-act="comp" data-c="mb">${t('Anakart','Motherboard')}</button>`}
+   <button class="btn" data-act="flip" data-to="front">${t('Çevir','Flip')}</button></div>
+   <p style="font-size:12px;margin-top:8px;color:#9fc3d4">${st.coverOn?t('Vidalara dokunarak tek tek sök ya da tak.','Tap screws to remove or fit them one by one.')+(M.look.captive?t(' Bu modelde vidalar tutsak tiptir, kapakta kalır.',' This model uses captive screws that stay in the cover.'):''):t('Bir parçaya dokun: incele, ölç, sök ya da tak.','Tap a part to inspect, measure, remove or fit it.')+' '+t('Güvenlik','Safety')+': '+(ur.length?'<b style="color:var(--warn)">'+ur.join(', ')+'</b>':`<b style="color:var(--ok)">${t('güç kesik, çalışmak güvenli','power is off, safe to work')}</b>`)}</p>`;
+}
+
+/* ---------- PC ---------- */
+function renderPC(){
+  const tabs=[['stock',t('Depo','Stock')],['shop',t('Tedarikçi','Supplier')],['orders',t('Siparişler','Orders')],['tools',t('Mağaza','Upgrades')],['cash',t('Kasa','Till')],['ach',t('Başarımlar','Achievements')]];
+  let b='';
+  if(ui.pcTab==='stock'){const ks=Object.keys(S.stock).filter(k=>S.stock[k]>0);
+    b=`<p class="dim" style="margin-bottom:6px">${t('Elindeki yedek parçalar ve satış ürünleri.','Your spare parts and retail goods.')}</p>`+(ks.length?ks.map(k=>`<div class="row"><div class="nm">${esc(PN(k))}${PARTS[k].model?`<small>${t('Sadece ','Only ')+esc(MODELS[PARTS[k].model].name)}</small>`:''}</div><b class="mono">${k==='paste'?S.stock[k]+t(' uygulama',' uses'):S.stock[k]+t(' adet',' pcs')}</b></div>`).join(''):`<p class="dim">${t('Depo boş.','Stock is empty.')}</p>`);}
+  if(ui.pcTab==='shop'){const j=cur();const bm=j?j.l.model:null;
+    let list=Object.keys(PARTS).filter(k=>!PARTS[k].nosell);
+    if(ui.cat==='bench')list=bm?list.filter(k=>{const P=PARTS[k],M=MODELS[bm];return P.model===bm||(P.cat==='ram'&&P.ram===M.ram)||(P.cat==='disk'&&((P.form==='nvme'&&M.m2)||(P.form==='bay'&&M.bay)))||k===M.chg||P.cat==='sarf';}):[];
+    else if(ui.cat==='retail')list=list.filter(k=>PARTS[k].retail);
+    else if(ui.cat!=='all')list=list.filter(k=>PARTS[k].cat===ui.cat);
+    b=`<div class="chips">${CATS.map(([k,tx])=>`<button data-act="cat" data-c="${k}" class="${ui.cat===k?'on':''}">${esc(X(tx))}</button>`).join('')}</div>`+
+     (ui.cat==='bench'&&!bm?`<p class="dim">${t('Masada laptop yok. Başka bir kategori seç.','No laptop on the bench. Pick another category.')}</p>`:'')+
+     (ui.cat==='retail'&&!has('vitrin')?`<p class="dim" style="margin-bottom:8px">${t('Perakende müşteriler için Mağaza\'dan satış vitrini al.','Buy a display case under Upgrades to get retail customers.')}</p>`:'')+
+     list.map(k=>{const P=PARTS[k];return `<div class="row"><div class="nm">${esc(PN(k))}<small>${t('Alış','Cost')} ${usd(P.c)} · ${t('Satış','Price')} ${usd(sp(k))}${P.model?' · '+esc(MODELS[P.model].name):''}${stock(k)?' · '+t('Depoda ','In stock ')+stock(k):''}</small></div><div class="btns"><button class="btn sm" data-act="buy" data-p="${k}">${t('Sipariş (yarın)','Order (tomorrow)')}</button><button class="btn sm" data-act="buy" data-p="${k}" data-x="1">${t('Ekspres','Express')} ${usd(Math.round(P.c*(has('cabinet')?1.15:1.35)))}</button></div></div>`;}).join('');}
+  if(ui.pcTab==='orders')b=S.orders.length?S.orders.map(o=>`<div class="row"><div class="nm">${esc(PN(o.pid))}</div><span class="chip">${o.at!=null?t('Kurye ~','Courier ~')+hhmm(o.at):t('Yarın sabah','Tomorrow morning')}</span></div>`).join(''):`<p class="dim">${t('Bekleyen sipariş yok.','No pending orders.')}</p>`;
+  if(ui.pcTab==='tools')b=Object.keys(TOOLS).filter(k=>TOOLS[k].c>0).map(k=>{const T=TOOLS[k];return `<div class="row"><div class="nm">${esc(X(T.n))}<small>${esc(X(T.d))}</small></div>${has(k)?`<span class="chip ok">${t('Sahipsin','Owned')}</span>`:`<button class="btn sm ${S.money>=T.c?'pri':''}" data-act="tool" data-t="${k}">${usd(T.c)}</button>`}</div>`;}).join('')+`<h3>${t('Başlangıç aletlerin','Starter tools')}</h3><p class="dim">${Object.keys(TOOLS).filter(k=>TOOLS[k].c===0).map(k=>X(TOOLS[k].n)).join(' · ')}</p>`;
+  if(ui.pcTab==='cash'){
+    b=`<div class="row"><span>${t('Kasa','Till')}</span><b class="mono">${usd(S.money)}</b></div><div class="row"><span>${t('Bugünkü gelir','Today\'s income')}</span><b class="mono amt p">${usd(S.today.inc)}</b></div><div class="row"><span>${t('Bugünkü gider','Today\'s spending')}</span><b class="mono amt n">${usd(S.today.exp)}</b></div><div class="row"><span>${t('Günlük kira ve faturalar','Daily rent and bills')}</span><b class="mono">${usd(RENT)}</b></div><div class="row"><span>${t('Tamir / satış','Repairs / sales')}</span><b class="mono">${S.stats.fixed} / ${S.stats.sold}</b></div>
+    <h3>${t('Kasa defteri','Ledger')}</h3>${S.ledger.length?S.ledger.slice(0,25).map(e=>`<div class="row"><div class="nm">${esc(X(e.desc))}<small>${t('Gün','Day')} ${e.d} · ${e.t}</small></div><b class="mono amt ${e.amt>=0?'p':'n'}">${e.amt>=0?'+':''}${usd(e.amt)}</b></div>`).join(''):`<p class="dim">${t('Henüz hareket yok.','No transactions yet.')}</p>`}
+    <h3>${t('Müşteri yorumları','Customer reviews')}</h3>${S.reviews.length?S.reviews.slice(0,8).map(r=>`<div class="row"><div class="nm">${'★'.repeat(r.stars)}${'☆'.repeat(5-r.stars)} <b>${esc(r.name)}</b><small>"${esc(X(r.txt))}"</small></div></div>`).join(''):`<p class="dim">${t('Henüz yorum yok.','No reviews yet.')}</p>`}
+    <div class="btns" style="margin-top:12px"><button class="btn" data-act="endAsk">${t('Dükkanı kapat, günü bitir','Close up and end the day')}</button></div>`;}
+  if(ui.pcTab==='ach')b=Object.keys(ACH).map(k=>`<div class="row"><div class="nm">${esc(X(ACH[k]))}</div>${S.ach[k]?`<span class="chip ok">${t('Gün ','Day ')+S.ach[k]}</span>`:'<span class="chip">—</span>'}</div>`).join('');
+  return `<h2>${t('Dükkan bilgisayarı','Shop computer')}</h2><div class="os"><div class="ttl"><span>LightOS</span><span class="mono">${hhmm(S.time)}</span></div><div class="ostabs">${tabs.map(([k,tx])=>`<button data-act="pctab" data-t="${k}" class="${ui.pcTab===k?'on':''}">${tx}</button>`).join('')}</div><div class="osb">${b}</div></div>`;
+}
+
+/* ---------- overlays ---------- */
+function openModal(m){ui.modal=m;render();}
+function closeModal(){ui.modal=null;render();}
+function closeSheet(){ui.sheet=null;}
+function receiptHtml(inv){
+  const shop=esc(S.name);
+  return `<div class="printer"></div><div class="paperWrap"><div class="paper"><h5>${shop}</h5><div class="c">${t('Bilgisayar Tamir ve Servis','Computer Repair & Service')}</div><hr>
+  <div class="l"><span>${t('FATURA','INVOICE')} No</span><span>LCS-${inv.no}</span></div><div class="l"><span>${t('Tarih','Date')}</span><span>${t('Gün','Day')} ${inv.day} · ${inv.time}</span></div><div class="l"><span>${t('Müşteri','Customer')}</span><span>${esc(inv.name)}</span></div>${inv.model?`<div class="l"><span>${t('Cihaz','Device')}</span><span>${esc(inv.model)}</span></div>`:''}<hr>
+  ${inv.lines.map(x=>`<div class="l"><span>${esc(X(x.n))}</span><span>${usd(x.p)}</span></div>`).join('')}
+  ${inv.kind==='job'?`<div class="l"><span>${t('İşçilik','Labour')}</span><span>${usd(inv.labor)}</span></div>`:''}<hr>
+  <div class="l tt"><span>${t('TOPLAM','TOTAL')}</span><span>${usd(inv.total)}</span></div><div class="c" style="font-size:11px;color:#6d6a60">${t('KDV dahildir','Tax included')}</div>
+  <div class="c" style="margin-top:8px"><span class="stamp">${t('ÖDENDİ','PAID')}</span></div><div class="c" style="margin-top:6px">${t('Teşekkür ederiz!','Thank you!')}</div></div></div>
+  <div class="regBig"><div class="register"><div class="rd">${usd(inv.total)}</div><div class="rb"></div><div class="dr"></div></div></div>`;
+}
+function renderOverlay(){
+  let h='';
+  if(ui.sheet){
+    if(ui.sheet.k==='comp'){const i=compInfo(ui.sheet.c);
+      h=`<div class="veil" data-act="sheetBg"><div class="sheet" role="dialog"><h2 style="margin-bottom:4px">${esc(i.t)}</h2><p class="dim">${esc(i.d)}</p>${i.A.map(a=>`<button class="act" data-act="do" data-c="${ui.sheet.c}" data-a="${a.id}" ${a.dis?'disabled':''}><span>${esc(a.label)}<small>${esc(a.dis||a.sub||'')}</small></span><span class="t">${a.min} ${t('dk','min')}</span></button>`).join('')}<button class="btn" style="width:100%;margin-top:12px" data-act="sheetClose">${t('Kapat','Close')}</button></div></div>`;}
+    if(ui.sheet.k==='pick'){const o=ui.sheet.opts;
+      h=`<div class="veil" data-act="sheetBg"><div class="sheet"><h2>${t('Ne takacaksın?','What will you fit?')}</h2>${o.length?o.map(x=>`<button class="act" data-act="inst" data-slot="${ui.sheet.slot}" data-src="${x.src}" data-ref="${x.src==='tray'?x.i:x.p}" ${x.dis?'disabled':''}><span>${esc(x.n)}<small>${esc(x.dis||x.sub)}</small></span></button>`).join(''):`<p class="dim">${t('Tepside de depoda da uygun parça yok. Bilgisayar sekmesinden sipariş ver.','No suitable part in the tray or stock. Order one from the Computer tab.')}</p>`}<button class="btn" style="width:100%;margin-top:12px" data-act="sheetClose">${t('Vazgeç','Cancel')}</button></div></div>`;}
+  }
+  const m=ui.modal;
+  if(m){let b='';const okBtn=lbl=>`<div class="btns" style="margin-top:14px"><button class="btn pri" data-act="mclose">${lbl||t('Tamam','OK')}</button></div>`;
+    if(m.k==='msg')b=`<h2>${esc(X(m.title))}</h2><p>${esc(X(m.body))}</p>`+okBtn();
+    if(m.k==='notes'){const l=L();b=`<h2>${t('Not defteri','Notebook')}</h2><div class="notes" style="color:var(--fg)">${l.log.slice().reverse().map(n=>`<div style="background:var(--panel2)"><span class="mono dim">${n.time}</span> ${esc(X(n.t))}</div>`).join('')}</div>`+okBtn(t('Kapat','Close'));}
+    if(m.k==='risk')b=`<h2 style="color:var(--warn)">${t('Dikkat!','Careful!')}</h2><p>${t('Şu an','Right now')} <b>${esc(m.r.join(', '))}</b>. ${t('Anakarta güç gelirken parça söküp takmak kısa devreye ve kalıcı hasara yol açabilir.','Swapping parts while the board has power can short it and cause permanent damage.')}</p><p class="dim" style="margin-top:8px">${t('Doğrusu: bilgisayarı kapat, adaptörü çıkar, batarya konnektörünü ayır.','The right way: power off, unplug the charger, disconnect the battery.')}</p><div class="btns" style="margin-top:14px"><button class="btn pri" data-act="mclose">${t('Haklısın, vazgeç','Right, cancel')}</button>${S.tut.on?'':`<button class="btn bad" data-act="risk">${t('Riski göze al','Risk it')}</button>`}</div>`;
+    if(m.k==='pry')b=`<h2>${t('Kapak bir yerden tutuyor','The cover is still held somewhere')}</h2><p>${t('Kapak kenarlardan esniyor ama bir noktada sıkı sıkıya bağlı. Zorlarsan plastik klipsler kırılabilir.','It flexes at the edges but something is holding it. Force it and the plastic clips may snap.')}</p><div class="btns" style="margin-top:14px"><button class="btn pri" data-act="mclose">${t('Vazgeç, tekrar bak','Cancel, look again')}</button>${S.tut.on?'':`<button class="btn bad" data-act="force">${t('Zorla aç','Force it open')}</button>`}</div>`;
+    if(m.k==='complain'){const j=job(m.id);b=`<h2>${t(esc(j.cust.name)+' geldi, denedi…',esc(j.cust.name)+' came and tried it…')}</h2><div class="bubble">"${esc(X(m.p.c))}"</div><p class="dim" style="margin-top:10px">${t('Laptopu geri bıraktı. İtibarın biraz düştü.','They left the laptop with you again. Your reputation dropped a little.')} (${esc(X(m.p.t))})</p>`+okBtn(t('Masaya dön','Back to the bench'));}
+    if(m.k==='invoice'){const j=job(m.id);const lines=invoiceLines(j);const parts=lines.reduce((s,x)=>s+x.p,0);const sug=sugLabor(j);
+      b=`<h2>${t('Fatura hazırla','Prepare invoice')}</h2><p class="dim">${esc(j.cust.name)} · ${esc(MODELS[j.l.model].name)}</p><table class="inv">${lines.map(x=>`<tr><td>${esc(X(x.n))}</td><td>${usd(x.p)}</td></tr>`).join('')}
+      <tr><td>${t('İşçilik','Labour')} <span class="dim" style="font-size:12px">(${t('piyasa','market')} ~${usd(sug)})</span></td><td><div class="step" style="justify-content:flex-end"><button class="btn sm" data-act="labor" data-d="-2">−</button><b>${usd(m.labor)}</b><button class="btn sm" data-act="labor" data-d="2">+</button></div></td></tr>
+      <tr class="tot"><td>${t('Toplam','Total')}</td><td>${usd(parts+m.labor)}</td></tr></table><div class="btns"><button class="btn pri" data-act="issue">${t('Faturayı kes','Print invoice')}</button></div>`;}
+    if(m.k==='receipt'){b=receiptHtml(m.inv)+`<div class="btns" style="margin-top:12px;justify-content:center"><button class="btn pri" data-act="take" ${m.inv.paid?'disabled':''}>${t('Kasaya al','Ring it up')} · ${usd(m.inv.total)}</button></div>`;}
+    if(m.k==='paid'){b=`<h2 style="color:var(--amber)">+${usd(m.total)}${m.tip?` <span style="font-size:15px;color:var(--ok)">+${usd(m.tip)} ${t('bahşiş','tip')}</span>`:''}</h2><p>${'★'.repeat(m.stars)}${'☆'.repeat(5-m.stars)} ${esc(m.name)}: ${esc(X(m.msg))}</p><p class="dim">${t('İtibar','Reputation')} ${m.dr>=0?'+':''}${m.dr.toFixed(2)}</p><h3>${t('Usta notu','Master\'s note')}</h3>${m.faults.map(f=>`<p style="margin-bottom:8px">${esc(X(FAULTS[f].lesson))}</p>`).join('')}`+okBtn(t('Devam','Continue'));}
+    if(m.k==='closing')b=`<h2>${t('Saat 19:00, mesai bitti','It\'s 19:00, closing time')}</h2><p>${t('Kepenkleri indirme vakti. Raftaki işler yarın da bekler.','Time to pull the shutters down. Shelved jobs will wait until tomorrow.')}</p><div class="btns" style="margin-top:14px"><button class="btn pri" data-act="endDay">${t('Dükkanı kapat','Close the shop')}</button></div>`;
+    if(m.k==='endAsk')b=`<h2>${t('Dükkanı kapatalım mı?','Close up for the day?')}</h2><p>${t('Tezgahta bekleyenler gider, bugünkü kira ('+usd(RENT)+') kasadan düşer.','Anyone waiting at the counter leaves, and today\'s rent ('+usd(RENT)+') comes out of the till.')}</p><div class="btns" style="margin-top:14px"><button class="btn pri" data-act="endDay">${t('Kapat','Close')}</button><button class="btn" data-act="mclose">${t('Biraz daha çalışayım','Keep working')}</button></div>`;
+    if(m.k==='summary'){const s=m.sum;b=`<h2>${t('Gün '+s.day+' bitti','Day '+s.day+' is over')}</h2><table class="inv"><tr><td>${t('Gelir','Income')}</td><td>${usd(s.inc)}</td></tr><tr><td>${t('Parça ve alet','Parts and tools')}</td><td>${usd(s.exp-s.rent)}</td></tr><tr><td>${t('Kira ve faturalar','Rent and bills')}</td><td>${usd(s.rent)}</td></tr><tr class="tot"><td>${t('Kasa','Till')}</td><td>${usd(s.money)}</td></tr></table>${s.late?`<p style="color:var(--bad)">${t(s.late+' iş gecikti, itibarın düştü.',s.late+' job(s) overdue, reputation dropped.')}</p>`:''}${s.left?`<p class="dim">${t(s.left+' müşteri kapanışta gitti.',s.left+' customer(s) left at closing.')}</p>`:''}${s.money<0?`<p style="color:var(--bad)">${t('Kasa ekside! Ucuz işlerle toparla.','The till is negative! Pick up quick jobs to recover.')}</p>`:''}<div class="btns" style="margin-top:14px"><button class="btn pri" data-act="nextDay">${t('Gün '+(s.day+1)+': kepenkleri aç','Day '+(s.day+1)+': open the shutters')}</button></div>`;}
+    if(m.k==='menu')b=`<h2>${t('Menü','Menu')}</h2><p class="dim">${t('Oyun her hamlede bu tarayıcıya kaydedilir.','The game saves to this browser after every move.')}</p>
+      <div style="display:grid;gap:8px;margin-top:12px">
+      <div class="btns"><button class="btn sm ${PREF.lang==='tr'?'on':''}" data-act="lang" data-l="tr">Türkçe</button><button class="btn sm ${PREF.lang==='en'?'on':''}" data-act="lang" data-l="en">English</button></div>
+      <div class="btns">${S.tut.on?`<button class="btn sm ${PREF.music?'on':''}" data-act="music">${t('Eğitim müziği','Tutorial music')}: ${PREF.music?t('açık','on'):t('kapalı','off')}</button>`:''}<button class="btn sm ${PREF.sfx?'on':''}" data-act="sfxT">${t('Efektler','Sound effects')}: ${PREF.sfx?t('açık','on'):t('kapalı','off')}</button></div>
+      <label class="dim" for="vol">${t('Ses düzeyi','Volume')}</label><input id="vol" class="vol" type="range" min="0" max="1" step="0.05" value="${PREF.vol}">
+      <button class="btn" data-act="endAsk">${t('Dükkanı kapat (günü bitir)','Close up (end the day)')}</button>${S.tut.on?`<button class="btn" data-act="skipTut">${t('Eğitimi atla','Skip tutorial')}</button>`:''}
+      <button class="btn" data-act="toTitle">${t('Ana ekrana dön','Back to title')}</button><button class="btn bad" data-act="resetAsk">${t('Yeni oyun (kaydı sil)','New game (delete save)')}</button><button class="btn pri" data-act="mclose">${t('Kapat','Close')}</button></div>`;
+    if(m.k==='resetAsk')b=`<h2>${t('Kaydı silelim mi?','Delete your save?')}</h2><p>${t('Dükkanın, paran ve raftaki işler silinir. Geri alınamaz.','Your shop, cash and shelved jobs are deleted. This can\'t be undone.')}</p><div class="btns" style="margin-top:14px"><button class="btn bad" data-act="reset">${t('Evet, sil','Yes, delete')}</button><button class="btn" data-act="mclose">${t('Vazgeç','Cancel')}</button></div>`;
+    h+=`<div class="veil mid"><div class="modal" role="dialog">${b}</div></div>`;
+  }
+  $('#overlay').innerHTML=h;
+  const v=$('#vol');if(v)v.addEventListener('input',()=>{PREF.vol=+v.value;savePref();if(master)master.gain.value=PREF.vol;});
+}
+function renderCoach(){const s=tutStep();if(!s){$('#coachBox').innerHTML='';return;}
+  $('#coachBox').innerHTML=`<div id="coach"><div class="av">${t('RU','MR')}</div><div class="tx">${X(s.t)}${s.btn?`<div style="margin-top:8px"><button class="btn sm pri" data-act="tutBtn">${esc(X(s.btn))}</button></div>`:''}</div></div>`;}
+function applyPulse(){const s=tutStep();if(!s||!s.sel)return;document.querySelectorAll(s.sel).forEach((e,i)=>{if(s.sel.startsWith('.scrw')&&i>0)return;e.classList.add('pulse');});}
+function render(){
+  if(!S)return;if(S.tut.on)tutCheck();if(!S.tut.on&&MUS.timer)musicStop();
+  document.documentElement.lang=PREF.lang;
+  renderHud();renderNav();
+  const v=ui.view;
+  $('#main').innerHTML=`<div class="wrap">${v==='counter'?renderCounter():v==='shelf'?renderShelf():v==='bench'?renderBench():renderPC()}</div>`;
+  renderOverlay();renderCoach();applyPulse();save();
+}
+
+/* =================== actions =================== */
+const A={
+  nav:d=>{ui.view=d.nav;render();$('#main').scrollTop=0;},
+  menu:()=>openModal({k:'menu'}),
+  lang:d=>{PREF.lang=d.l;savePref();if(S)render();else showTitle();},
+  music:()=>{PREF.music=!PREF.music;savePref();ac();musicApply();if(PREF.music)musicStart('shop');else musicStop();if(S)render();else showTitle();},
+  sfxT:()=>{PREF.sfx=!PREF.sfx;savePref();if(!PREF.sfx)fanSound(false);render();},
+  accept:()=>{if(canWork())acceptJob();},
+  decline:()=>declineJob(),
+  sell:()=>{if(canWork())sellRetail();},
+  wait:()=>{const n=S.arrivals[0];if(n!=null&&n>S.time)spend(n-S.time);else spend(5);render();},
+  toBench:d=>toBench(+d.id),toShelf:()=>toShelf(),call:d=>callCust(+d.id),
+  hint:()=>hint(),notes:()=>openModal({k:'notes'}),
+  labels:()=>{ui.labels=!ui.labels;render();},
+  flip:d=>{const l=L();if(!l)return;const to=d.to||(l.st.view==='front'?'under':'front');if(to===l.st.view)return;if(l.st.powered){toast(B('Açıkken çevirme; önce kapat.','Don\'t flip it while it\'s on; power off first.'));return;}if(!canWork())return;l.st.view=to;spend(1);render();},
+  plug:d=>{const l=L(),st=l.st;if(!canWork())return;const nm=d.s==='test'?B('Test adaptörünü','the test adapter'):B('Müşteri adaptörünü','the customer\'s charger');
+    if(st.plug===d.s){st.plug=null;spend(.5);note(B(nm.tr+' çıkardın.','You unplugged '+nm.en+'.'));unplugWhileOn();}
+    else{st.plug=d.s;spend(.5);const p=plugState(l);
+      note(B(nm.tr+' taktın. '+(p==='ok'?'Şarj ışığı yandı.':p==='flaky'?'Şarj ışığı titreyerek yanıp sönüyor!':'Şarj ışığı hiç yanmadı.'),'You plugged in '+nm.en+'. '+(p==='ok'?'The charge light came on.':p==='flaky'?'The charge light flickers on and off!':'The charge light stays off.')));
+      if(p==='flaky')found('dcjack');}
+    sfx('click');render();},
+  power:()=>{const l=L();if(!l||!canWork())return;if(l.st.powered){hardOff();spend(1);note(B('Bilgisayarı kapattın.','You powered it off.'));render();return;}powerOn();render();},
+  measureChg:()=>{const l=L();if(!canWork())return;spend(2);note(l.charger.ok?B('Müşterinin adaptörü: 19,5 V (etiket 19 V, sağlam).','Customer\'s charger: 19.5 V (label says 19 V, fine).'):B('Müşterinin adaptörü: 0,3 V (etiket 19 V, adaptör ölü).','Customer\'s charger: 0.3 V (label says 19 V, it\'s dead).'));if(!l.charger.ok)found('charger');render();},
+  giveChg:()=>{const l=L(),M=MODELS[l.model];if(!stock(M.chg))return;S.stock[M.chg]--;billPart(l,M.chg);l.charger={ok:true,given:true};spend(2);note(B('Müşteriye yeni adaptör ayırdın; artık o kullanılıyor.','You set aside a new charger for the customer; it\'s the one in use now.'));render();},
+  key:d=>{const l=L(),st=l.st;if(!st.powered||['beep','post'].includes(st.screen))return;spend(1);
+    if(d.k==='F2'){st.screen='bios';st.app=null;note(B('BIOS\'a girdin.','You entered the BIOS.'));const b=st.bat;if(b&&st.batConn&&b.health<60)found(b.swollen?'bat_swollen':'bat_worn');if([st.m2,st.bay].some(x=>x&&!x.ok))found('ssd_dead');if(st.cmosV<2.5)found('cmos');}
+    else{st.screen='boot';st.app=null;}
+    render();},
+  f1:()=>{const l=L();if(l.st.screen!=='cmos')return;spend(.5);contBoot();render();},
+  bootSel:d=>{const l=L(),st=l.st;
+    if(d.o==='win')contBoot();
+    else if(d.o==='bios'){A.key({k:'F2'});return;}
+    else if(d.o==='memtest'){spend(30);const seated=st.ram.filter(r=>r&&r.seated);const bad=seated.some(r=>!r.ok);
+      st.memRes=bad?(seated.length===1?B('Test tamam: 1.284 HATA\nBu modül arızalı.','Test complete: 1,284 ERRORS\nThis module is faulty.'):B('Test tamam: 312 HATA\nAdres: 0x3A0F2C10 civarı\nHangisi olduğunu bulmak için modülleri tek tek test et.','Test complete: 312 ERRORS\nAddress around 0x3A0F2C10\nTest the sticks one at a time to find which.')):B('Test tamam: 0 hata. GEÇTİ.','Test complete: 0 errors. PASS.');
+      st.screen='memtest';note(bad?B('MemTest86: hatalar bulundu.','MemTest86: errors found.'):B('MemTest86: 0 hata.','MemTest86: 0 errors.'));if(bad)found('ram_bad');}
+    else if(d.o==='setup'){const tgt=[st.m2,st.bay].find(x=>x&&x.ok&&!x.os)||[st.m2,st.bay].find(x=>x&&x.ok);
+      if(!tgt){st.screen='setup';st.setupMsg=B('Windows Kurulumu\n\nKurulacak disk bulunamadı.','Windows Setup\n\nNo drive found to install to.');note(B('Windows kurulumu: hedef disk yok.','Windows Setup: no target drive.'));}
+      else{spend(40);const hadOs=tgt.os&&tgt.owner==='cust';tgt.os=true;st.setupMsg=B('Windows Kurulumu\n\nKurulum tamamlandı. Yeniden başlatılıyor…','Windows Setup\n\nInstallation complete. Restarting…');st.screen='setup';
+        if(!l.osBilled){l.osBilled=true;l.billed.push({n:B('Windows kurulumu','Windows installation'),p:7});}
+        note(B('Windows\'u '+PARTS[tgt.pid].n.tr+' üzerine kurdun (40 dk).','Installed Windows on the '+PARTS[tgt.pid].n.en+' (40 min).'));sfx('ok');if(hadOs){l.wiped=true;note(B('Dikkat: müşterinin diskine temiz kurulum yaptın, dosyaları silindi.','Careful: you clean-installed over the customer\'s drive and their files are gone.'),'w');}st.sw={};later(1600,()=>contBoot());}}
+    else if(d.o==='repair'){const tgt=[st.m2,st.bay].find(x=>x&&x.ok&&x.os);spend(25);st.screen='setup';
+      if(!tgt){st.setupMsg=B('Başlangıç Onarımı\n\nOnarılacak Windows bulunamadı.','Startup Repair\n\nNo Windows installation found to repair.');note(B('Başlangıç Onarımı: Windows bulunamadı.','Startup Repair: no Windows found.'));}
+      else{const sw=st.sw||(st.sw={});const was=sw.corrupt;sw.corrupt=false;
+        st.setupMsg=was?B('Başlangıç Onarımı\n\nSistem dosyaları onarıldı. Yeniden başlatılıyor…','Startup Repair\n\nSystem files repaired. Restarting…'):B('Başlangıç Onarımı\n\nSorun bulunamadı. Yeniden başlatılıyor…','Startup Repair\n\nNo problems found. Restarting…');
+        note(was?B('Başlangıç Onarımı bozuk sistem dosyalarını düzeltti. Dosyalar yerinde.','Startup Repair fixed the corrupted system files. Files are intact.'):B('Başlangıç Onarımı sorun bulamadı.','Startup Repair found no problems.'));if(was)sfx('ok');later(1600,()=>contBoot());}}
+    render();},
+  app:d=>appOpen(d.a),
+  appClose:()=>{L().st.app=null;render();},
+  avScan:()=>{const st=L().st;if(!canWork())return;spend(20);st.avRes=(st.sw||{}).virus?37:0;note(st.avRes?B('Tam tarama: 37 tehdit bulundu.','Full scan: 37 threats found.'):B('Tam tarama: tehdit yok.','Full scan: no threats.'));if(st.avRes)found('virus');render();},
+  avClean:()=>{const st=L().st;st.sw=st.sw||{};spend(5);st.sw.virus=false;st.avRes=0;note(B('37 tehdit karantinaya alındı, tarayıcı ayarları sıfırlandı.','37 threats quarantined and browser settings reset.'));sfx('ok');render();},
+  drvInstall:()=>{const st=L().st;st.sw=st.sw||{};if(!canWork())return;spend(15);st.sw.driver=false;note(B('Ses, ekran ve touchpad sürücülerini yükledin.','You installed the audio, display and touchpad drivers.'));winChime();render();},
+  bloatFix:()=>{const st=L().st;st.sw=st.sw||{};spend(5);st.sw.bloat=false;note(B('32 gereksiz başlangıç programını devre dışı bıraktın.','You disabled 32 unnecessary startup programs.'));sfx('ok');render();},
+  screw:d=>{const l=L(),st=l.st;const i=+d.i;if(!canWork())return;const el=document.querySelector(`[data-act=screw][data-i="${i}"]`);
+    const go=()=>{st.screws[i]=!st.screws[i];ui._screwing=true;spend(1);ui._screwing=false;sfx('screw');render();};
+    if(st.screws[i]&&el){el.classList.add('spin');setTimeout(go,300);}else go();},
+  allScrews:d=>{const l=L(),st=l.st;if(!canWork())return;const want=d.o==='in';const M=MODELS[l.model];const n=M.look.screws.length;
+    let c=0;st.screws.forEach((v,i)=>{if(M.hidden>=0&&i===n&&!st.feetOff)return;if(v!==want){st.screws[i]=want;c++;}});
+    ui._screwing=true;spend(c);ui._screwing=false;sfx('screw');note(B('Akülü tornavidayla '+c+' vida '+(want?'taktın.':'söktün.'),'Cordless driver: '+c+' screws '+(want?'fitted.':'removed.')));render();},
+  foot:()=>{const l=L();spend(1);l.st.feetOff=true;note(B('Lastik ayağı kaldırdın: altında gizli bir vida var!','You peeled up the foot: there\'s a hidden screw!'));render();},
+  footBack:()=>{const l=L();spend(1);l.st.feetOff=false;note(B('Lastik ayağı yerine yapıştırdın.','Rubber foot stuck back on.'));render();},
+  pry:()=>{const l=L(),st=l.st;if(!canWork())return;spend(2);
+    if(st.screws.some(Boolean)){l.triedPry=true;sfx('err');note(B('Kapak bir noktadan tutuyor, açılmadı.','The cover is held somewhere and won\'t come off.'));openModal({k:'pry'});return;}
+    st.coverOn=false;sfx('snap');if(l.wantRam)found('ram_up');note(B('Spatulayla klipsleri açtın. Kapak çıktı.','You popped the clips with the spudger. The cover is off.'));render();},
+  force:()=>{const l=L(),st=l.st;ui.modal=null;spend(2);st.coverOn=false;if(Math.random()<.75){st.clip=true;note(B('Kapağı zorla açtın. Çat! İki klips kırıldı.','You forced the cover. Crack! Two clips snapped.'),'w');repAdd(-.05);}else note(B('Kapağı zorla açtın, şans eseri klipsler dayandı.','You forced the cover and, luckily, the clips held.'));
+    st.screws=st.screws.map(()=>false);sfx('snap');render();},
+  closeCover:()=>{const l=L();if(!canWork())return;spend(2);l.st.coverOn=true;sfx('snap');note(B('Kapağı yerine oturttun. Şimdi vidaları tak.','Cover clipped on. Now fit the screws.'));render();},
+  comp:d=>{ui.sheet={k:'comp',c:d.c};render();},
+  do:d=>doAct(d.c,d.a),
+  risk:()=>{const m=ui.modal;ui.modal=null;doAct(m.c,m.a,true);},
+  inst:d=>installItem(d.slot,d.src,d.ref),
+  sheetClose:()=>{closeSheet();render();},
+  sheetBg:(d,el,e)=>{if(e.target===el){closeSheet();render();}},
+  mclose:()=>closeModal(),
+  labor:d=>{ui.modal.labor=Math.max(0,ui.modal.labor+ +d.d);render();},
+  issue:()=>printInvoice(ui.modal.id,ui.modal.labor),
+  take:()=>takePayment(),
+  pctab:d=>{ui.pcTab=d.t;render();},
+  cat:d=>{ui.cat=d.c;render();},
+  buy:d=>buy(d.p,!!d.x),
+  tool:d=>buyTool(d.t),
+  endAsk:()=>openModal({k:'endAsk'}),
+  endDay:()=>{ui.modal=null;endDay();},
+  nextDay:()=>{ui.modal=null;shutter(t('GÜN ','DAY ')+S.day+' · 09:00',()=>{ui.view='counter';render();});sfx('door');render();},
+  tutBtn:()=>{S.tut.step++;if(S.tut.step>=TUT.length)endTut();render();},
+  skipTut:()=>{ui.modal=null;endTut();},
+  toTitle:()=>{ui.modal=null;save();showTitle();},
+  resetAsk:()=>openModal({k:'resetAsk'}),
+  reset:()=>{try{localStorage.removeItem(KEY);}catch(e){}S=null;ui.modal=null;showTitle();},
+  newGame:()=>{const n=($('#shopName')&&$('#shopName').value.trim())||'Light Computer Services';newGame(n.slice(0,28));startGame(true);},
+  cont:()=>{const s=loadSave();if(!s){toast(B('Kayıt bulunamadı.','No save found.'));return;}S=s;for(const j of S.jobs){j.l.st.powered=false;j.l.st.screen='off';j.l.st.app=null;j.l.st.sw=j.l.st.sw||{};}ui.view=S.benchId?'bench':'counter';startGame(false);}
+};
+document.addEventListener('click',e=>{
+  const el=e.target.closest('[data-act]');if(!el)return;const fn=A[el.dataset.act];if(!fn)return;
+  ac();if(PREF.music&&!MUS.timer&&S&&S.tut.on&&$('#title').style.display==='none')musicStart('shop');
+  if(el.dataset.act==='sheetBg'){fn(el.dataset,el,e);return;}
+  e.stopPropagation();fn(el.dataset,el,e);
+});
+
+/* =================== title & intro =================== */
+let stopIntro=null;
+function showTitle(){
+  $('#title').style.display='flex';$('#app').style.visibility='hidden';$('#coachBox').innerHTML='';$('#overlay').innerHTML='';
+  musicStop();
+  const sv=loadSave();
+  $('#tsub').textContent=t('Küçük bir bilgisayar tamir dükkanı aç. Arızayı bul, vidaları sök, tozu al, macunu yenile, faturayı kes. Kazandıkça dükkanını büyüt.','Open a small computer repair shop. Find the fault, undo the screws, blow out the dust, renew the paste, print the invoice. Grow the shop as you earn.');
+  $('#titleBtns').innerHTML=`<input class="tin" id="shopName" maxlength="28" placeholder="${t('Dükkanının adı','Your shop\'s name')}" value="${sv?'':'Light Computer Services'}" aria-label="${t('Dükkan adı','Shop name')}">
+   <button class="btn pri" data-act="newGame">${sv?t('Yeni dükkan aç','Open a new shop'):t('Dükkanı aç','Open the shop')}</button>${sv?`<button class="btn" data-act="cont">${t('Devam et','Continue')} · ${esc(sv.name)}, ${t('Gün','Day')} ${sv.day}</button>`:''}`;
+  $('#titleLang').innerHTML=`<button class="btn sm ${PREF.lang==='tr'?'on':''}" data-act="lang" data-l="tr">Türkçe</button><button class="btn sm ${PREF.lang==='en'?'on':''}" data-act="lang" data-l="en">English</button>`;
+  if(!stopIntro){$('#titleUi').classList.remove('show');stopIntro=intro(sv?sv.name:'LIGHT COMPUTER SERVICES');
+    const reduce=matchMedia('(prefers-reduced-motion: reduce)').matches;
+    const go=()=>{const tb=$('#tapStart');if(tb)tb.remove();if(stopIntro)stopIntro.start();if(!reduce)introSound();setTimeout(()=>$('#titleUi').classList.add('show'),reduce?0:3600);};
+    if(AC&&AC.state==='running')go();
+    else{const b=document.createElement('button');b.id='tapStart';b.textContent=t('Başlamak için dokun','Tap to start');b.addEventListener('click',()=>{ac();go();});$('#title').appendChild(b);}
+  }
+}
+function startGame(isNew){
+  if(stopIntro){stopIntro();stopIntro=null;}
+  $('#title').style.display='none';$('#app').style.visibility='visible';
+  MUS.mode='shop';render();if(PREF.music&&S.tut.on)musicStart('shop');
+  if(isNew)shutter(t('GÜN 1 · 09:00','DAY 1 · 09:00'));
+}
+function intro(signText){
+  const cv=$('#introCv'),ctx=cv.getContext('2d');let raf=0;let t0=null;const reduce=matchMedia('(prefers-reduced-motion: reduce)').matches;
+  const flick=[];for(let i=0;i<40;i++)flick.push(Math.random());
+  function frame(now){
+    const dpr=Math.min(2,window.devicePixelRatio||1);const W=cv.clientWidth*dpr,H=cv.clientHeight*dpr;
+    if(cv.width!==W||cv.height!==H){cv.width=W;cv.height=H;}
+    const tm=t0==null?0:reduce?10:(now-t0)/1000;
+    let g=ctx.createLinearGradient(0,0,0,H);g.addColorStop(0,'#05070c');g.addColorStop(1,'#111723');ctx.fillStyle=g;ctx.fillRect(0,0,W,H);
+    const fw=Math.min(W*.86,H*1.05),fx=(W-fw)/2,fy=H*.1,fh=H*.72;
+    ctx.fillStyle='#1d232b';ctx.fillRect(fx,fy,fw,fh);
+    ctx.strokeStyle='#262e37';ctx.lineWidth=dpr;for(let y=fy;y<fy+fh;y+=14*dpr){ctx.beginPath();ctx.moveTo(fx,y);ctx.lineTo(fx+fw,y);ctx.stroke();}
+    const ox=fx+fw*.12,ow=fw*.76,oy=fy+fh*.34,oh=fh*.6;
+    g=ctx.createLinearGradient(0,oy,0,oy+oh);g.addColorStop(0,'#5a3a16');g.addColorStop(1,'#2a1a0a');ctx.fillStyle=g;ctx.fillRect(ox,oy,ow,oh);
+    ctx.fillStyle='#3a2612';for(let i=0;i<3;i++)ctx.fillRect(ox+ow*.06,oy+oh*(.18+i*.2),ow*.32,4*dpr);
+    const cols=['#8e979e','#2c2f33','#b9bfc5','#61768d','#1d1d23'];
+    for(let i=0;i<3;i++)for(let k=0;k<3;k++){ctx.fillStyle=cols[(i*3+k)%5];ctx.fillRect(ox+ow*(.08+k*.1),oy+oh*(.18+i*.2)-9*dpr,ow*.07,9*dpr);}
+    ctx.fillStyle='#1d5872';ctx.fillRect(ox+ow*.45,oy+oh*.62,ow*.5,oh*.06);
+    ctx.fillStyle='#4a3218';ctx.fillRect(ox+ow*.45,oy+oh*.68,ow*.5,oh*.32);
+    ctx.fillStyle='#b9c1c7';ctx.fillRect(ox+ow*.6,oy+oh*.56,ow*.16,oh*.06);
+    g=ctx.createRadialGradient(ox+ow*.7,oy+oh*.1,2,ox+ow*.7,oy+oh*.5,oh*.7);g.addColorStop(0,'rgba(255,200,120,.55)');g.addColorStop(1,'rgba(255,200,120,0)');ctx.fillStyle=g;ctx.fillRect(ox,oy,ow,oh);
+    const p=clamp((tm-.8)/2.4,0,1);const ease=1-Math.pow(1-p,3);const sh=oh*(1-ease);
+    if(sh>0){g=ctx.createLinearGradient(0,oy,0,oy+sh);g.addColorStop(0,'#59626a');g.addColorStop(1,'#6b747b');ctx.fillStyle=g;ctx.fillRect(ox,oy,ow,sh);
+      ctx.strokeStyle='#3e464c';ctx.lineWidth=2*dpr;for(let y=oy+sh;y>oy;y-=11*dpr){ctx.beginPath();ctx.moveTo(ox,y);ctx.lineTo(ox+ow,y);ctx.stroke();}
+      ctx.fillStyle='#2d3338';ctx.fillRect(ox+ow*.46,oy+sh-8*dpr,ow*.08,5*dpr);}
+    ctx.fillStyle='#14181d';ctx.fillRect(ox-6*dpr,oy-10*dpr,ow+12*dpr,10*dpr);
+    const sx=fx+fw*.1,sw=fw*.8,sy=fy+fh*.09,shh=fh*.17;
+    ctx.fillStyle='#0d1116';ctx.fillRect(sx,sy,sw,shh);ctx.strokeStyle='#2c343c';ctx.strokeRect(sx,sy,sw,shh);
+    const on=tm>3.4||(tm>3&&flick[Math.floor(tm*20)%40]>.45);
+    const txt=signText.toLocaleUpperCase('tr-TR');const fs=Math.min(shh*.44,sw/(txt.length*.6));
+    ctx.font=`700 ${fs}px "Chakra Petch",system-ui,sans-serif`;ctx.textAlign='center';ctx.textBaseline='middle';
+    if(on){ctx.shadowColor='#f3a83b';ctx.shadowBlur=24*dpr;ctx.fillStyle='#ffc56a';}else{ctx.shadowBlur=0;ctx.fillStyle='#3a2d1a';}
+    ctx.fillText(txt,sx+sw/2,sy+shh/2);ctx.shadowBlur=0;
+    ctx.fillStyle='#0b0e12';ctx.fillRect(0,fy+fh,W,H-fy-fh);ctx.fillStyle='#1a2028';ctx.fillRect(0,fy+fh,W,6*dpr);
+    if(on){g=ctx.createRadialGradient(W/2,fy+fh,4,W/2,fy+fh,fw*.6);g.addColorStop(0,'rgba(243,168,59,.18)');g.addColorStop(1,'rgba(243,168,59,0)');ctx.fillStyle=g;ctx.fillRect(0,fy+fh*.5,W,H);}
+    raf=requestAnimationFrame(frame);
+  }
+  raf=requestAnimationFrame(frame);const stop=()=>cancelAnimationFrame(raf);stop.start=()=>{if(t0==null)t0=performance.now();};return stop;
+}
+
+window.__T={get S(){return S;},A,L,cur,problems,render,ui,doAct,installItem,spend,FAULTS,MODELS,PARTS,newGame,startGame,makeCustomer,retailCustomer,TUT,PREF,MUS};
+showTitle();
+})();
+</script>
+
+</body>
+</html>
